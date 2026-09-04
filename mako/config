@@ -1,0 +1,11 @@
+background-color=#1a1b26
+text-color=#a9b1d6
+border-color=#7aa2f7
+border-size=2
+border-radius=10
+width=300
+height=100
+margin=10,10,10,10
+padding=10
+font=Inter 11
+default-timeout=5000
