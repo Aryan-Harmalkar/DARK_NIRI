@@ -7,26 +7,46 @@ Item {
     implicitWidth: row.implicitWidth
     implicitHeight: 30
 
-    property string ssid: "Disconnected"
+    property string netType: "none"
+    property string netName: "Disconnected"
+
+    function getIcon() {
+        if (root.netType === "wifi") return "󰤨";
+        if (root.netType === "ethernet") return "󰈀";
+        if (root.netType === "usb") return "󰕄";
+        if (root.netType === "cellular") return "󰀂";
+        return "󰤭";
+    }
+
+    function getIconColor() {
+        if (root.netType === "none" || root.netName === "Disconnected") return "#f7768e";
+        if (root.netType === "ethernet" || root.netType === "usb") return "#9ece6a";
+        return "#7aa2f7";
+    }
 
     Process {
         id: fetchProcess
-        command: ["sh", "-c", "nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2"]
+        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/net-tracker.py", "--type"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
                 let out = text.trim()
                 if (out !== "") {
-                    root.ssid = out
+                    let parts = out.split("|")
+                    if (parts.length >= 2) {
+                        root.netType = parts[0]
+                        root.netName = parts[1]
+                    }
                 } else {
-                    root.ssid = "Disconnected"
+                    root.netType = "none"
+                    root.netName = "Disconnected"
                 }
             }
         }
     }
 
     Timer {
-        interval: 5000
+        interval: 4000
         running: true
         repeat: true
         onTriggered: fetchProcess.running = true
@@ -38,13 +58,13 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         
         Text {
-            text: root.ssid === "Disconnected" ? "󰤭" : "󰤨"
-            color: root.ssid === "Disconnected" ? "#f7768e" : "#7aa2f7"
+            text: root.getIcon()
+            color: root.getIconColor()
             font.pixelSize: 18
             anchors.verticalCenter: parent.verticalCenter
         }
         Text {
-            text: root.ssid
+            text: root.netName
             color: "#c0caf5"
             font.pixelSize: 15
             anchors.verticalCenter: parent.verticalCenter

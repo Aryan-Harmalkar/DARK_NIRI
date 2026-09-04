@@ -25,8 +25,20 @@ CPU_LINE=$(head -n 1 /proc/stat 2>/dev/null)
 CPU_IDLE=$(echo "$CPU_LINE" | awk '{print $5 + $6}')
 CPU_TOTAL=$(echo "$CPU_LINE" | awk '{print $2+$3+$4+$5+$6+$7+$8}')
 
-# 3. Total Network (All non-loopback interfaces: wlan0, enp2s0, usb0, etc.)
-read -r NET_RX NET_TX < <(awk '$1 !~ /lo:|face/ {rx+=$2; tx+=$10} END {print rx, tx}' /proc/net/dev 2>/dev/null)
+# 3. Physical Network Speed (wlan0, enp2s0, usb0, etc. - excludes virtual/VPN tunnels and Docker bridges)
+NET_RX=0
+NET_TX=0
+for dev_path in /sys/class/net/*; do
+    iface=$(basename "$dev_path")
+    if [ -e "$dev_path/device" ] || [[ "$iface" =~ ^(wlan|wlp|enp|eth|eno|usb|enx|wwan|wwp) ]]; then
+        if [[ ! "$iface" =~ ^(lo|docker|veth|virbr|br-|tun|wg|tailscale|dummy) ]]; then
+            rx=$(cat "$dev_path/statistics/rx_bytes" 2>/dev/null || echo 0)
+            tx=$(cat "$dev_path/statistics/tx_bytes" 2>/dev/null || echo 0)
+            NET_RX=$((NET_RX + rx))
+            NET_TX=$((NET_TX + tx))
+        fi
+    fi
+done
 [ -z "$NET_RX" ] && NET_RX=0
 [ -z "$NET_TX" ] && NET_TX=0
 NOW=$(date +%s%N)
@@ -78,83 +90,8 @@ fi
 # Save state
 echo "$NOW $CPU_TOTAL $CPU_IDLE $NET_RX $NET_TX" > "$STATE_FILE"
 
-# 3b. Daily & Monthly Data Usage Tracking (Persistent)
-USAGE_OUT=$(python3 -c '
-import json, os, time
-data_dir = os.path.expanduser("~/.local/share/quickshell")
-os.makedirs(data_dir, exist_ok=True)
-usage_file = os.path.join(data_dir, "network_usage.json")
-cur_date = time.strftime("%Y-%m-%d")
-cur_month = time.strftime("%Y-%m")
-with open("/proc/sys/kernel/random/boot_id") as f:
-    boot_id = f.read().strip()
-net_rx, net_tx = 0, 0
-with open("/proc/net/dev") as f:
-    for line in f:
-        if ":" in line and not line.strip().startswith("lo:"):
-            parts = line.split(":", 1)[1].split()
-            net_rx += int(parts[0])
-            net_tx += int(parts[8])
-data = {}
-if os.path.exists(usage_file):
-    try:
-        with open(usage_file, "r") as f:
-            data = json.load(f)
-    except Exception:
-        data = {}
-saved_boot_id = data.get("boot_id", "")
-saved_rx = data.get("last_rx", 0)
-saved_tx = data.get("last_tx", 0)
-saved_date = data.get("date", cur_date)
-saved_month = data.get("month", cur_month)
-day_bytes = data.get("day_bytes", 0)
-month_bytes = data.get("month_bytes", 0)
-if cur_date != saved_date:
-    day_bytes = 0
-    saved_date = cur_date
-if cur_month != saved_month:
-    month_bytes = 0
-    saved_month = cur_month
-if not data:
-    day_bytes = net_rx + net_tx
-    month_bytes = net_rx + net_tx
-elif boot_id != saved_boot_id:
-    delta = net_rx + net_tx
-    day_bytes += delta
-    month_bytes += delta
-else:
-    delta_rx = max(0, net_rx - saved_rx)
-    delta_tx = max(0, net_tx - saved_tx)
-    delta = delta_rx + delta_tx
-    day_bytes += delta
-    month_bytes += delta
-data = {
-    "boot_id": boot_id,
-    "last_rx": net_rx,
-    "last_tx": net_tx,
-    "date": cur_date,
-    "month": cur_month,
-    "day_bytes": day_bytes,
-    "month_bytes": month_bytes
-}
-try:
-    with open(usage_file + ".tmp", "w") as f:
-        json.dump(data, f)
-    os.replace(usage_file + ".tmp", usage_file)
-except Exception:
-    pass
-def fmt(b):
-    if b >= 1024**3:
-        return f"{b / (1024**3):.1f} GB"
-    elif b >= 1024**2:
-        return f"{b / (1024**2):.1f} MB"
-    elif b >= 1024:
-        return f"{b / 1024:.0f} KB"
-    else:
-        return f"{b} B"
-print(f"{fmt(day_bytes)}|{fmt(month_bytes)}")
-' 2>/dev/null)
-
+# 3b. Daily & Monthly Data Usage Tracking (Persistent across boots, physical WAN/LAN/USB tethering only)
+USAGE_OUT=$("$HOME/DARK_NIRI/quickshell/net-tracker.py" --get 2>/dev/null)
 DATA_DAY=$(echo "$USAGE_OUT" | awk -F'|' '{print $1}')
 DATA_MONTH=$(echo "$USAGE_OUT" | awk -F'|' '{print $2}')
 [ -z "$DATA_DAY" ] && DATA_DAY="0 B"
@@ -178,18 +115,33 @@ AMD_TEMP=$(echo "$SENSORS_OUT" | awk '/amdgpu-pci-0500/,/^$/' | awk '/edge:/ {gs
 AMD_POWER=$(echo "$SENSORS_OUT" | awk '/amdgpu-pci-0500/,/^$/' | awk '/PPT:/ {print $2 " " $3}' | head -n 1)
 [ -z "$AMD_POWER" ] && AMD_POWER="iGPU"
 
-# 6. GPU 2: NVIDIA GeForce RTX 3050 Laptop (dGPU)
-NV_INFO=$(nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,power.draw --format=csv,noheader,nounits 2>/dev/null | head -n 1)
-if [ -n "$NV_INFO" ]; then
-    NV_TEMP=$(echo "$NV_INFO" | awk -F',' '{print int($1)}')
-    NV_UTIL=$(echo "$NV_INFO" | awk -F',' '{print int($2)}')
-    NV_POWER=$(echo "$NV_INFO" | awk -F',' '{printf "%.1f W", $3}')
-    NV_STATUS="Active"
+# 6. GPU 2: NVIDIA GeForce RTX 3050 Laptop (dGPU) - Zero-wake check
+NV_STATUS="Sleeping"
+NV_TEMP=0
+NV_UTIL=0
+NV_POWER="0 W"
+
+NV_PCI=$(for pci in /sys/bus/pci/devices/*; do
+    if [ -f "$pci/vendor" ] && [ "$(cat "$pci/vendor" 2>/dev/null)" = "0x10de" ] && [ -f "$pci/power/runtime_status" ]; then
+        echo "$pci"
+        break
+    fi
+done)
+
+if [ -n "$NV_PCI" ]; then
+    NV_PWR_STATE=$(cat "$NV_PCI/power/runtime_status" 2>/dev/null)
 else
-    NV_TEMP=0
-    NV_UTIL=0
-    NV_POWER="0 W"
-    NV_STATUS="Sleeping"
+    NV_PWR_STATE="suspended"
+fi
+
+if [ "$NV_PWR_STATE" = "active" ]; then
+    NV_INFO=$(nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,power.draw --format=csv,noheader,nounits 2>/dev/null | head -n 1)
+    if [ -n "$NV_INFO" ]; then
+        NV_TEMP=$(echo "$NV_INFO" | awk -F',' '{print int($1)}')
+        NV_UTIL=$(echo "$NV_INFO" | awk -F',' '{print int($2)}')
+        NV_POWER=$(echo "$NV_INFO" | awk -F',' '{printf "%.1f W", $3}')
+        NV_STATUS="Active"
+    fi
 fi
 
 printf '{"cpu_name": "%s", "cpu_cores": "%s", "cpu_pct": %d, "cpu_temp": %d, "cpu_fan": "%s", "ram_used": "%s", "ram_total": "%s", "ram_pct": %d, "net_down": "%s", "net_up": "%s", "data_day": "%s", "data_month": "%s", "amd_name": "AMD Radeon 740M", "amd_temp": %d, "amd_power": "%s", "amd_fan": "%s", "nv_name": "NVIDIA RTX 3050", "nv_temp": %d, "nv_util": %d, "nv_power": "%s", "nv_status": "%s"}\n' \

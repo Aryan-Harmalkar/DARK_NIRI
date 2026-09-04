@@ -44,4 +44,43 @@ deploy_app "fuzzel"
 deploy_app "quickshell"
 deploy_app "mako"
 
+# Deploy background network usage tracker systemd service
+if command -v systemctl >/dev/null 2>&1; then
+    echo "⚙️  Setting up background network usage tracker..."
+    SYSTEMD_DIR="$HOME/.config/systemd/user"
+    mkdir -p "$SYSTEMD_DIR"
+    
+    cat << 'SVC' > "$SYSTEMD_DIR/qs-net-tracker.service"
+[Unit]
+Description=Quickshell Data Usage Background Tracker
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/DARK_NIRI/quickshell/net-tracker.py --update
+ExecStop=/usr/bin/python3 %h/DARK_NIRI/quickshell/net-tracker.py --update
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+SVC
+
+    cat << 'TMR' > "$SYSTEMD_DIR/qs-net-tracker.timer"
+[Unit]
+Description=Quickshell Data Usage Tracker Periodic Timer
+
+[Timer]
+OnBootSec=15s
+OnUnitActiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
+TMR
+
+    systemctl --user daemon-reload 2>/dev/null
+    systemctl --user enable --now qs-net-tracker.timer 2>/dev/null
+    systemctl --user enable --now qs-net-tracker.service 2>/dev/null
+fi
+
 echo "✨ Deployment complete! You can now start Niri."

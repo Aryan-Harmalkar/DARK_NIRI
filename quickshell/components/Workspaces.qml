@@ -9,26 +9,35 @@ Item {
 
     property var workspacesList: []
 
+    // 1. Initial one-shot fetch on load
     Process {
-        id: fetchWorkspaces
+        id: initWorkspaces
         command: ["niri", "msg", "-j", "workspaces"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     let parsed = JSON.parse(text)
-                    workspacesList = parsed
+                    workspacesList = parsed.sort((a, b) => a.idx - b.idx)
                 } catch(e) {}
             }
         }
     }
 
-    Timer {
-        interval: 300
+    // 2. Real-time zero-overhead event stream from Niri compositor
+    Process {
+        id: eventStream
+        command: ["niri", "msg", "-j", "event-stream"]
         running: true
-        repeat: true
-        onTriggered: {
-            fetchWorkspaces.running = true
+        stdout: SplitParser {
+            onRead: (line) => {
+                try {
+                    let obj = JSON.parse(line)
+                    if (obj.WorkspacesChanged && obj.WorkspacesChanged.workspaces) {
+                        workspacesList = obj.WorkspacesChanged.workspaces.sort((a, b) => a.idx - b.idx)
+                    }
+                } catch(e) {}
+            }
         }
     }
 

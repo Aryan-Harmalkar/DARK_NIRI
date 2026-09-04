@@ -25,6 +25,14 @@ uninstall_app() {
     fi
 }
 
+# Stop and remove background tracker
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user disable --now qs-net-tracker.timer 2>/dev/null
+    systemctl --user disable --now qs-net-tracker.service 2>/dev/null
+    rm -f "$HOME/.config/systemd/user/qs-net-tracker.service" "$HOME/.config/systemd/user/qs-net-tracker.timer"
+    systemctl --user daemon-reload 2>/dev/null
+fi
+
 uninstall_app "niri"
 uninstall_app "fuzzel"
 uninstall_app "quickshell"
