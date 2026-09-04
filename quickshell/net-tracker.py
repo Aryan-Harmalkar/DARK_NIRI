@@ -18,7 +18,8 @@ def get_boot_id():
 
 def fmt_bytes(b):
     if b >= 1024**3:
-        return f"{b / (1024**3):.1f} GB"
+        # Show 3 decimal places for GB (e.g., 1.234 GB)
+        return f"{b / (1024**3):.3f} GB"
     elif b >= 1024**2:
         return f"{b / (1024**2):.1f} MB"
     elif b >= 1024:
@@ -70,7 +71,6 @@ def update_usage():
 
     is_new_boot = (boot_id != saved_boot_id)
 
-    curr_ifaces = {}
     total_delta = 0
 
     for dev_path in glob.glob("/sys/class/net/*"):
@@ -83,28 +83,30 @@ def update_usage():
             with open(os.path.join(dev_path, "statistics/tx_bytes")) as f:
                 tx = int(f.read().strip())
             total = rx + tx
-            curr_ifaces[iface] = total
 
-            prev = saved_ifaces.get(iface, 0)
-            if not data:
-                # Initial baseline
+            if iface not in saved_ifaces:
+                # Newly detected interface: set baseline without adding past uptime
+                saved_ifaces[iface] = total
                 delta = 0
             elif is_new_boot:
-                # New boot: kernel counters restarted from 0
+                # System rebooted: kernel counter started from 0
                 delta = total
+                saved_ifaces[iface] = total
             else:
+                prev = saved_ifaces[iface]
                 if total >= prev:
                     delta = total - prev
                 else:
-                    # Interface reconnected/reset
+                    # Interface reconnected or counter wrapped
                     delta = total
+                saved_ifaces[iface] = total
+
             total_delta += delta
         except Exception:
             pass
 
     day_bytes += total_delta
     month_bytes += total_delta
-    saved_ifaces.update(curr_ifaces)
 
     data = {
         "boot_id": boot_id,
@@ -117,8 +119,17 @@ def update_usage():
 
     try:
         with open(USAGE_FILE + ".tmp", "w") as f:
-            json.dump(data, f)
+            json.dump(data, f, indent=2)
         os.replace(USAGE_FILE + ".tmp", USAGE_FILE)
+    except Exception:
+        pass
+
+    # Trigger daily markdown logger update
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        logger_script = os.path.join(script_dir, "daily-network-logger.py")
+        if os.path.exists(logger_script):
+            subprocess.Popen(["python3", logger_script, "--update"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         pass
 
