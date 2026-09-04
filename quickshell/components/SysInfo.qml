@@ -19,6 +19,8 @@ Item {
 
     property string netDown: "0 B/s"
     property string netUp: "0 B/s"
+    property string dataDay: "0 B"
+    property string dataMonth: "0 B"
 
     property string amdName: "AMD Radeon 740M"
     property int amdTemp: 35
@@ -51,6 +53,8 @@ Item {
 
                     root.netDown = data.net_down || "0 B/s"
                     root.netUp = data.net_up || "0 B/s"
+                    root.dataDay = data.data_day || "0 B"
+                    root.dataMonth = data.data_month || "0 B"
 
                     root.amdName = data.amd_name || "AMD Radeon 740M"
                     root.amdTemp = data.amd_temp || 35
@@ -71,6 +75,14 @@ Item {
     Timer {
         interval: 1000
         running: hoverArea.containsMouse
+        repeat: true
+        onTriggered: sysProcess.running = true
+    }
+
+    // Background periodic commit timer for network data usage tracking (every 30 seconds)
+    Timer {
+        interval: 30000
+        running: true
         repeat: true
         onTriggered: sysProcess.running = true
     }
@@ -151,7 +163,7 @@ Item {
         anchor.rect.height: 1
 
         implicitWidth: 580
-        implicitHeight: 350
+        implicitHeight: 390
         visible: hoverArea.containsMouse
         color: "transparent"
 
@@ -296,33 +308,79 @@ Item {
                     }
                 }
 
-                // 3. Internet Speed Section
+                // 3. Internet Speed & Total Data Usage Section
                 Rectangle {
                     width: parent.width
-                    height: 50
+                    height: 84
                     radius: 10
                     color: "#16161e"
                     border.color: "#292e42"
                     border.width: 1
 
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 36
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
 
+                        // Live Transfer Rates (Download & Upload)
                         Row {
-                            spacing: 10
-                            Text { text: "󰇚"; color: "#7dcfff"; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Download: "; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: root.netDown; color: "#7dcfff"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            width: parent.width
+                            height: 24
+
+                            Row {
+                                width: (parent.width - 1) / 2
+                                spacing: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                Text { text: "󰇚"; color: "#7dcfff"; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Download:"; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.netDown; color: "#7dcfff"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            }
+
+                            Rectangle { width: 1; height: 18; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+
+                            Row {
+                                width: (parent.width - 1) / 2
+                                spacing: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 12
+                                Text { text: "󰕒"; color: "#9ece6a"; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Upload:"; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.netUp; color: "#9ece6a"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            }
                         }
 
-                        Rectangle { width: 1; height: 24; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+                        // Divider
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: "#24283b"
+                        }
 
+                        // Total Data Used (Today & This Month)
                         Row {
-                            spacing: 10
-                            Text { text: "󰕒"; color: "#9ece6a"; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Upload: "; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: root.netUp; color: "#9ece6a"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            width: parent.width
+                            height: 24
+
+                            Row {
+                                width: (parent.width - 1) / 2
+                                spacing: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                Text { text: "󰔛"; color: "#e0af68"; font.pixelSize: 17; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Today:"; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.dataDay; color: "#e0af68"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            }
+
+                            Rectangle { width: 1; height: 18; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+
+                            Row {
+                                width: (parent.width - 1) / 2
+                                spacing: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 12
+                                Text { text: "󰃭"; color: "#bb9af7"; font.pixelSize: 17; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Month:"; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.dataMonth; color: "#bb9af7"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            }
                         }
                     }
                 }

@@ -1,99 +1,130 @@
-# 🌌 Dark Niri Dotfiles
+# 🌌 Dark Niri
 
-Welcome to **Dark Niri**, a curated, Wayland-native desktop environment configuration centered around the [Niri](https://github.com/YaLTeR/niri) scrollable-tiling window manager. 
+<div align="center">
 
-This repository contains everything you need to bootstrap a fully functional, highly aesthetic, and keyboard-driven desktop experience.
+![Niri](https://img.shields.io/badge/Compositor-Niri%20Wayland-7c4dff?style=for-the-badge)
+![QuickShell](https://img.shields.io/badge/Shell-QuickShell%20QML-7aa2f7?style=for-the-badge)
+![Theme](https://img.shields.io/badge/Theme-Tokyo%20Night-1a1b26?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-9ece6a?style=for-the-badge)
+
+**A high-performance, keyboard-driven, Wayland-native desktop environment centered around the Niri scrollable-tiling window manager, featuring a custom QuickShell status bar, integrated Control Center, and Tokyo Night aesthetic.**
+
+[Features](#-key-features) • [Quick Start](#-quick-start) • [Keybindings](#-essential-keybindings) • [Documentation Hub](#-documentation-hub)
+
+</div>
 
 ---
 
-## 📁 Repository Structure
+## 🎯 Overview
 
-The folder structure is designed to map directly to your `~/.config/` directory.
+**Dark Niri** is a curated desktop configuration combining the continuous horizontal workflow of [Niri](https://github.com/YaLTeR/niri) with a rich, interactive QtQuick/QML desktop shell powered by [QuickShell](https://github.com/outfoxxed/quickshell).
 
-```text
-DARK_NIRI/
-├── niri/                       # Main compositor configuration
-│   ├── config.kdl              # Keybindings, window rules, layouts, inputs
-│   └── startup.sh              # Autostart script (Bar, Notifications, Wallpaper)
-├── fuzzel/                     # Application launcher
-│   └── fuzzel.ini              # Theming and layout settings
-├── quickshell/                 # Status Bar (QtQuick based)
-│   ├── shell.qml               # Main panel and layout definitions
-│   └── components/             
-│       └── Clock.qml           # Live clock module
-├── mako/                       # Notification daemon
-│   └── config                  # Colors, fonts, and borders
-├── deploy.sh                   # Safely symlinks configs to ~/.config
-├── uninstall.sh                # Removes symlinks and restores backups
-├── keybindings-docs.md         # Detailed cheat sheet for keyboard shortcuts
-└── README.md                   # You are here!
+- **Supported Compositor**: Niri (Wayland)
+- **Primary Distribution**: Arch Linux (systemd & Wayland stack)
+- **Design Philosophy**: Minimalist dark glassmorphism (Tokyo Night `#1a1b26`), keyboard-first window management, and zero bloat.
+
+---
+
+## ✨ Key Features
+
+- 📜 **Scrollable Column Tiling**: Infinite horizontal workspace ribbon with 33.3%, 50%, and 66.7% preset column widths.
+- 🐚 **Custom QuickShell Top Bar**: 55px bar with 12 modular widgets (Workspaces, Clock, Hardware Monitor, Media, Network, Bluetooth, Audio, Mic, Brightness, Battery, Screencast, Control Center).
+- ⚙️ **Integrated Control Center (`Settings.qml`)**: 2,936 lines of modular QML providing quick toggles, master volume/brightness sliders, and interactive modals.
+- 📶 **Wi-Fi Manager with WPS Support**: Scans networks, prompts for credentials, and interrogates D-Bus AP flags for instant WPS pairing.
+- 🔵 **Bluetooth Manager & Audio Profiles**: Scans, pairs, and switches between High Fidelity (`A2DP`) and Headset (`HSP/HFP`) profiles.
+- 🖼️ **Multi-Mode Wallpaper Engine**: Supports static images (`swaybg`), animated live videos (`mpvpaper`), and solid canvas colors with thumbnail caching.
+- 📊 **Real-Time Hardware Telemetry**: Live CPU %, thermals, fan RPM, RAM usage, persistent daily/monthly network data usage, AMD iGPU, and NVIDIA dGPU telemetry.
+- 🎵 **MPRIS Media Player**: Album art preview, hover controls, previous/play/pause/next, and position seeking.
+- 📹 **Screencasting Controller**: Region screen recording with live pulse indicator and pause/resume capabilities (`wf-recorder`).
+- 🔔 **Interactive Notification Center**: Backed by `mako` with per-item dismissal and batch clear.
+- 📋 **Clipboard History**: `Super + V` powered by `cliphist`, `wl-clipboard`, and `rofi`.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies (Arch Linux)
+```bash
+sudo pacman -S --needed \
+    niri rofi-wayland mako alacritty \
+    pipewire wireplumber libpulse playerctl \
+    networkmanager bluez bluez-utils \
+    brightnessctl power-profiles-daemon lm_sensors upower \
+    swaybg ffmpegthumbnailer ffmpeg wf-recorder grim slurp wl-clipboard cliphist \
+    ttf-inter ttf-nerd-fonts-symbols papirus-icon-theme python git
+
+# Enable Bluetooth, Wi-Fi, and Power Profile daemons
+sudo systemctl enable --now NetworkManager bluetooth power-profiles-daemon
+
+# Install QuickShell & video wallpaper engine from AUR (e.g. using yay)
+yay -S --needed quickshell-git mpvpaper
+```
+
+### 2. Deploy Dotfiles
+```bash
+git clone https://github.com/Aryan-Harmalkar/DARK_NIRI.git ~/DARK_NIRI
+cd ~/DARK_NIRI
+chmod +x deploy.sh uninstall.sh
+./deploy.sh
 ```
 
 ---
 
-## 🧩 Components Overview
+## ⌨️ Essential Keybindings
 
-This setup uses modern, Wayland-native tools selected for their speed, customizability, and cohesive aesthetic.
-
-### 1. Niri (Window Manager)
-Niri is a scrollable-tiling Wayland compositor. Instead of managing complex grids of windows, Niri opens windows in a continuous horizontal strip.
-- **Aesthetics**: Configured with 16px gaps, rounded corners, and a dark purple focus ring.
-- **Workflow**: Heavily relies on the `Super` key. 
-- **Documentation**: See [`keybindings-docs.md`](keybindings-docs.md) for a full breakdown of the layout and shortcuts.
-
-### 2. Quickshell (Status Bar)
-A highly modular shell built on QML. It provides a beautiful top panel out of the box.
-- Features a live clock.
-- Easily expandable by dropping new `.qml` widgets into the `components/` folder.
-
-### 3. Fuzzel (App Launcher)
-A very fast Wayland-native application launcher. 
-- Bound to `Super + Space`.
-- Themed in `#1a1b26` (Dark Tokyo Night style) with `#7aa2f7` borders to match the system.
-
-### 4. Mako (Notifications)
-A lightweight Wayland notification daemon.
-- Displays notifications in the corner of your screen.
-- Styled with rounded borders and a matching dark palette.
+| Shortcut | Action | Command / Target |
+| :--- | :--- | :--- |
+| `Super + Return` | Open Terminal | `alacritty` |
+| `Super + Space` | Application Launcher | `rofi -show drun` |
+| `Super + V` | Clipboard History | `cliphist list \| rofi` |
+| `Alt + F` | Close Window | `close-window` |
+| `Super + F` | Maximize Column Width | `maximize-column` |
+| `Super + Shift + F` | Fullscreen Window | `fullscreen-window` |
+| `Super + Left / Right` | Focus Column Left / Right | `focus-column-left/right` |
+| `Super + Up / Down` | Focus Window Up / Down | `focus-window-up/down` |
+| `Super + 1 .. 5` | Switch Workspace 1 to 5 | `focus-workspace 1..5` |
+| `Super + Shift + 1 .. 5`| Move Column to Workspace | `move-column-to-workspace 1..5` |
+| `Print` | Area Screenshot | `grim -g "$(slurp)"` |
+| `Super + Print` | Fullscreen Screenshot | `grim` |
+| `Super + Shift + /` | Show Hotkey Overlay | `show-hotkey-overlay` |
 
 ---
 
-## 🚀 Installation & Deployment
+## 📚 Documentation Hub
 
-We have included automated scripts to safely link these dotfiles to your system.
+The complete documentation suite is organized in the [`docs/`](docs/) directory:
 
-### Dependencies
-Before deploying, ensure you have the required software installed on your Linux distribution:
-- `niri`
-- `fuzzel`
-- `quickshell`
-- `mako`
-- `alacritty` (Default terminal emulator)
-- `brightnessctl` (For backlight control)
-- `wireplumber` (Provides `wpctl` for audio control)
+### 🟢 [Simple & Beginner Guides (`docs/simple/`)](docs/simple/README.md)
+- 🚀 [**Getting Started**](docs/simple/GETTING_STARTED.md): 3-step setup and logging in for the first time.
+- ⌨️ [**Keyboard Shortcuts Cheat Sheet**](docs/simple/KEYBOARD_SHORTCUTS.md): Essential daily shortcuts explained simply.
+- 🎛️ [**Top Bar & Control Center**](docs/simple/BAR_AND_CONTROLS.md): Guide to Wi-Fi, Bluetooth, volume, and wallpaper settings.
+- 🎨 [**How to Customize**](docs/simple/HOW_TO_CUSTOMIZE.md): Easy instructions to change wallpapers, terminal, and keys.
+- ❓ [**Common Problems & Fixes**](docs/simple/COMMON_PROBLEMS.md): Quick solutions for everyday desktop issues.
 
-### Deploying
-1. Clone or download this repository to your home directory (e.g. `~/DARK_NIRI`).
-2. Run the deployment script:
-   ```bash
-   cd ~/DARK_NIRI
-   ./deploy.sh
-   ```
-   *Note: This script will automatically back up any existing configurations in your `~/.config` folder to `.bak` files before creating symlinks.*
+### 🔵 [Technical & Developer Reference (`docs/complex/`)](docs/complex/README.md)
+- 🏗️ [**Architecture & Protocols**](docs/complex/ARCHITECTURE.md)
+- 📁 [**Complete File Structure**](docs/complex/FILE_STRUCTURE.md)
+- 🌟 [**Feature Matrix**](docs/complex/FEATURES.md)
+- 📦 [**Package Manifest**](docs/complex/PACKAGES.md)
+- 🔗 [**Dependency Matrix**](docs/complex/DEPENDENCIES.md)
+- 📜 [**Niri Deep Dive**](docs/complex/NIRI.md)
+- 🐚 [**QuickShell Architecture**](docs/complex/QUICKSHELL.md)
+- 📊 [**System Telemetry Subsystem**](docs/complex/SYSTEM_MONITOR.md)
+- 🎵 [**Media Player Subsystem**](docs/complex/MEDIA.md)
+- ⚙️ [**Control Center Details**](docs/complex/SETTINGS.md)
+- 📶 [**Network & WPS Subsystem**](docs/complex/NETWORK.md)
+- 🔵 [**Bluetooth & Audio Profiles**](docs/complex/BLUETOOTH.md)
+- 🔒 [**Security Audit**](docs/complex/SECURITY.md)
+- 🌐 [**Portability Audit**](docs/complex/PORTABILITY.md)
+- 💻 [**Developer Guidelines**](docs/complex/DEVELOPMENT.md)
 
-3. Start Niri by running `niri-session` from a TTY, or selecting "Niri" in your display manager (like GDM or SDDM).
+---
 
-### Uninstalling / Reverting
-If you wish to test these dotfiles and later revert to your previous setup, simply run:
+## 🛠️ Uninstallation & Backup Recovery
+
+If you ever want to revert back to your previous setup:
 ```bash
 cd ~/DARK_NIRI
 ./uninstall.sh
 ```
-This will remove the symlinks and restore your original `.bak` backups.
-
----
-
-## 🎨 Customization
-
-- **Wallpaper:** To set a wallpaper, install `swaybg`, open `niri/startup.sh`, and uncomment the `swaybg` line, replacing the path with your image.
-- **Terminal:** If you prefer a terminal other than Alacritty, open `niri/config.kdl` and `fuzzel/fuzzel.ini` and change the `alacritty` commands to your preferred terminal (e.g., `kitty`, `foot`).
+This cleanly removes all symlinks and restores your previous `.config` backups automatically.

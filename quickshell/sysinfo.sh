@@ -78,6 +78,88 @@ fi
 # Save state
 echo "$NOW $CPU_TOTAL $CPU_IDLE $NET_RX $NET_TX" > "$STATE_FILE"
 
+# 3b. Daily & Monthly Data Usage Tracking (Persistent)
+USAGE_OUT=$(python3 -c '
+import json, os, time
+data_dir = os.path.expanduser("~/.local/share/quickshell")
+os.makedirs(data_dir, exist_ok=True)
+usage_file = os.path.join(data_dir, "network_usage.json")
+cur_date = time.strftime("%Y-%m-%d")
+cur_month = time.strftime("%Y-%m")
+with open("/proc/sys/kernel/random/boot_id") as f:
+    boot_id = f.read().strip()
+net_rx, net_tx = 0, 0
+with open("/proc/net/dev") as f:
+    for line in f:
+        if ":" in line and not line.strip().startswith("lo:"):
+            parts = line.split(":", 1)[1].split()
+            net_rx += int(parts[0])
+            net_tx += int(parts[8])
+data = {}
+if os.path.exists(usage_file):
+    try:
+        with open(usage_file, "r") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+saved_boot_id = data.get("boot_id", "")
+saved_rx = data.get("last_rx", 0)
+saved_tx = data.get("last_tx", 0)
+saved_date = data.get("date", cur_date)
+saved_month = data.get("month", cur_month)
+day_bytes = data.get("day_bytes", 0)
+month_bytes = data.get("month_bytes", 0)
+if cur_date != saved_date:
+    day_bytes = 0
+    saved_date = cur_date
+if cur_month != saved_month:
+    month_bytes = 0
+    saved_month = cur_month
+if not data:
+    day_bytes = net_rx + net_tx
+    month_bytes = net_rx + net_tx
+elif boot_id != saved_boot_id:
+    delta = net_rx + net_tx
+    day_bytes += delta
+    month_bytes += delta
+else:
+    delta_rx = max(0, net_rx - saved_rx)
+    delta_tx = max(0, net_tx - saved_tx)
+    delta = delta_rx + delta_tx
+    day_bytes += delta
+    month_bytes += delta
+data = {
+    "boot_id": boot_id,
+    "last_rx": net_rx,
+    "last_tx": net_tx,
+    "date": cur_date,
+    "month": cur_month,
+    "day_bytes": day_bytes,
+    "month_bytes": month_bytes
+}
+try:
+    with open(usage_file + ".tmp", "w") as f:
+        json.dump(data, f)
+    os.replace(usage_file + ".tmp", usage_file)
+except Exception:
+    pass
+def fmt(b):
+    if b >= 1024**3:
+        return f"{b / (1024**3):.1f} GB"
+    elif b >= 1024**2:
+        return f"{b / (1024**2):.1f} MB"
+    elif b >= 1024:
+        return f"{b / 1024:.0f} KB"
+    else:
+        return f"{b} B"
+print(f"{fmt(day_bytes)}|{fmt(month_bytes)}")
+' 2>/dev/null)
+
+DATA_DAY=$(echo "$USAGE_OUT" | awk -F'|' '{print $1}')
+DATA_MONTH=$(echo "$USAGE_OUT" | awk -F'|' '{print $2}')
+[ -z "$DATA_DAY" ] && DATA_DAY="0 B"
+[ -z "$DATA_MONTH" ] && DATA_MONTH="0 B"
+
 # 4. CPU Temperature & Fan Speed
 SENSORS_OUT=$(sensors 2>/dev/null)
 CPU_TEMP=$(echo "$SENSORS_OUT" | awk '/Tctl:/ {gsub(/[+°C]/, "", $2); print int($2)}' | head -n 1)
@@ -110,6 +192,6 @@ else
     NV_STATUS="Sleeping"
 fi
 
-printf '{"cpu_name": "%s", "cpu_cores": "%s", "cpu_pct": %d, "cpu_temp": %d, "cpu_fan": "%s", "ram_used": "%s", "ram_total": "%s", "ram_pct": %d, "net_down": "%s", "net_up": "%s", "amd_name": "AMD Radeon 740M", "amd_temp": %d, "amd_power": "%s", "amd_fan": "%s", "nv_name": "NVIDIA RTX 3050", "nv_temp": %d, "nv_util": %d, "nv_power": "%s", "nv_status": "%s"}\n' \
-    "$CPU_MODEL" "$CPU_CORES" "$CPU_PCT" "$CPU_TEMP" "$CPU_FAN" "$RAM_USED_GB" "$RAM_TOTAL_GB" "$RAM_PCT" "$NET_DOWN_FMT" "$NET_UP_FMT" \
+printf '{"cpu_name": "%s", "cpu_cores": "%s", "cpu_pct": %d, "cpu_temp": %d, "cpu_fan": "%s", "ram_used": "%s", "ram_total": "%s", "ram_pct": %d, "net_down": "%s", "net_up": "%s", "data_day": "%s", "data_month": "%s", "amd_name": "AMD Radeon 740M", "amd_temp": %d, "amd_power": "%s", "amd_fan": "%s", "nv_name": "NVIDIA RTX 3050", "nv_temp": %d, "nv_util": %d, "nv_power": "%s", "nv_status": "%s"}\n' \
+    "$CPU_MODEL" "$CPU_CORES" "$CPU_PCT" "$CPU_TEMP" "$CPU_FAN" "$RAM_USED_GB" "$RAM_TOTAL_GB" "$RAM_PCT" "$NET_DOWN_FMT" "$NET_UP_FMT" "$DATA_DAY" "$DATA_MONTH" \
     "$AMD_TEMP" "$AMD_POWER" "$GPU_FAN" "$NV_TEMP" "$NV_UTIL" "$NV_POWER" "$NV_STATUS"
