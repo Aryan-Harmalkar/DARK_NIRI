@@ -43,17 +43,17 @@ case "$1" in
             ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
 
             if [[ "$ext" =~ ^(mp4|webm|gif|mkv)$ ]]; then
-                # Live animated video wallpaper
+                # Live animated video wallpaper — use mpvpaper (QML can't handle video efficiently)
                 killall swaybg 2>/dev/null
                 killall mpvpaper 2>/dev/null
                 if which mpvpaper >/dev/null 2>&1; then
                     mpvpaper -o "no-audio loop pause=no" '*' "$WALL" &
                 fi
             else
-                # Static image wallpaper
+                # Static image wallpaper — QML WallpaperWindow handles rendering
+                # Just kill any leftover swaybg/mpvpaper processes
                 killall mpvpaper 2>/dev/null
                 killall swaybg 2>/dev/null
-                swaybg -i "$WALL" -m fill &
             fi
             echo "$WALL" > "$STATE_FILE"
             notify-send "Wallpaper Updated" "$(basename "$WALL")" -i preferences-desktop-wallpaper
@@ -64,7 +64,6 @@ case "$1" in
         if [ -n "$COLOR" ]; then
             killall mpvpaper 2>/dev/null
             killall swaybg 2>/dev/null
-            swaybg -c "$COLOR" &
             echo "color:$COLOR" > "$STATE_FILE"
             notify-send "Canvas Color Set" "$COLOR" -i preferences-desktop-wallpaper
         fi
@@ -81,23 +80,23 @@ case "$1" in
         CURRENT=$("$0" get)
         if [ -n "$CURRENT" ]; then
             if [[ "$CURRENT" =~ ^color:(.*)$ ]]; then
-                COLOR="${BASH_REMATCH[1]}"
+                # Solid color — QML handles this natively, nothing to launch
                 killall mpvpaper 2>/dev/null
                 killall swaybg 2>/dev/null
-                swaybg -c "$COLOR" &
             elif [ -f "$CURRENT" ]; then
                 ext="${CURRENT##*.}"
                 ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
                 if [[ "$ext" =~ ^(mp4|webm|gif|mkv)$ ]]; then
+                    # Video wallpaper — mpvpaper fallback
                     killall swaybg 2>/dev/null
                     killall mpvpaper 2>/dev/null
                     if which mpvpaper >/dev/null 2>&1; then
                         mpvpaper -o "no-audio loop pause=no" '*' "$CURRENT" &
                     fi
                 else
+                    # Static image — QML WallpaperWindow handles it
                     killall mpvpaper 2>/dev/null
                     killall swaybg 2>/dev/null
-                    swaybg -i "$CURRENT" -m fill &
                 fi
             fi
         fi
