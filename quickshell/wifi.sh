@@ -83,26 +83,70 @@ def get_wifi():
     except Exception as e:
         return {'enabled': False, 'networks': []}
 
+def get_wifi_device():
+    try:
+        dev_proc = subprocess.run(['nmcli', '-t', '-f', 'DEVICE,TYPE', 'dev'], capture_output=True, text=True, timeout=3)
+        for line in dev_proc.stdout.strip().split('\n'):
+            parts = line.split(':')
+            if len(parts) >= 2 and parts[1].strip() == 'wifi':
+                return parts[0].strip()
+    except Exception:
+        pass
+    return 'wlan0'
+
 def connect(ssid, password=None):
     if password:
         cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password]
     else:
         cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid]
     res = subprocess.run(cmd, capture_output=True, text=True)
-    return res.returncode == 0
+    if res.returncode == 0:
+        subprocess.run(['notify-send', 'Wi-Fi', f'Connected to {ssid}', '-i', 'network-wireless'])
+        return True
+    else:
+        err_msg = res.stderr.strip() or res.stdout.strip() or 'Failed to connect'
+        # Filter out common nmcli boilerplate
+        err_msg = err_msg.replace('Error: ', '')
+        if len(err_msg) > 90:
+            err_msg = err_msg[:90] + '...'
+        subprocess.run(['notify-send', 'Wi-Fi Connection Failed', err_msg, '-i', 'network-wireless-offline', '-u', 'critical'])
+        return False
 
 def connect_wps(ssid):
     # Connect directly using WPS / NetworkManager
     cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid]
     res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode == 0:
+        subprocess.run(['notify-send', 'Wi-Fi', f'Connected to {ssid}', '-i', 'network-wireless'])
+    else:
+        err_msg = res.stderr.strip() or res.stdout.strip() or 'Connection failed'
+        subprocess.run(['notify-send', 'Wi-Fi Connection Failed', err_msg.replace('Error: ', '')[:90], '-i', 'network-wireless-offline', '-u', 'critical'])
     return res.returncode == 0
 
+def connect_rofi(ssid):
+    home = os.environ.get('HOME', '/home/aryan')
+    rofi_theme = f"{home}/DARK_NIRI/rofi/config.rasi"
+    try:
+        rofi_cmd = ['rofi', '-dmenu', '-password', '-p', f'Wi-Fi: {ssid}', '-theme', rofi_theme]
+        rofi_proc = subprocess.run(rofi_cmd, capture_output=True, text=True)
+        pwd = rofi_proc.stdout.strip()
+        if pwd:
+            return connect(ssid, pwd)
+    except Exception as e:
+        pass
+    return False
+
 def disconnect():
-    res = subprocess.run(['nmcli', 'dev', 'disconnect', 'wlan0'], capture_output=True, text=True)
+    dev = get_wifi_device()
+    res = subprocess.run(['nmcli', 'dev', 'disconnect', dev], capture_output=True, text=True)
+    if res.returncode == 0:
+        subprocess.run(['notify-send', 'Wi-Fi', 'Disconnected from Wi-Fi', '-i', 'network-wireless-disconnected'])
     return res.returncode == 0
 
 def forget(ssid):
     res = subprocess.run(['nmcli', 'connection', 'delete', ssid], capture_output=True, text=True)
+    if res.returncode == 0:
+        subprocess.run(['notify-send', 'Wi-Fi', f'Forgot network {ssid}', '-i', 'edit-delete'])
     return res.returncode == 0
 
 def toggle():
@@ -110,6 +154,8 @@ def toggle():
     status_proc = subprocess.run(['nmcli', 'radio', 'wifi'], capture_output=True, text=True)
     new_state = 'off' if status_proc.stdout.strip() == 'enabled' else 'on'
     subprocess.run(['nmcli', 'radio', 'wifi', new_state])
+    state_str = "Enabled" if new_state == "on" else "Disabled"
+    subprocess.run(['notify-send', 'Wi-Fi Radio', f'Wi-Fi has been {state_str}', '-i', 'network-wireless'])
 
 if __name__ == '__main__':
     action = sys.argv[1] if len(sys.argv) > 1 else 'list'
@@ -124,6 +170,8 @@ if __name__ == '__main__':
     elif action == 'connect' and len(sys.argv) > 2:
         pwd = sys.argv[3] if len(sys.argv) > 3 else None
         connect(sys.argv[2], pwd)
+    elif action == 'connect-rofi' and len(sys.argv) > 2:
+        connect_rofi(sys.argv[2])
     elif action == 'wps' and len(sys.argv) > 2:
         connect_wps(sys.argv[2])
     elif action == 'rescan':

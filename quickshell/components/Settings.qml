@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 
 Item {
     id: root
@@ -97,6 +98,14 @@ Item {
                 root.wifiConnecting = false
             }
         }
+    }
+
+    // Wi-Fi delayed refresh timer for connection settling
+    Timer {
+        id: wifiRefreshTimer
+        interval: 3500
+        repeat: false
+        onTriggered: wifiListProcess.running = true
     }
 
     // Bluetooth Backend Process (BlueZ)
@@ -838,7 +847,12 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.isSettingsOpen = false
-                                Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/screencast.sh", "start"])
+                                if (root.recordStatus !== "idle") {
+                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/screencast.sh", "stop"])
+                                } else {
+                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/screencast.sh", "start"])
+                                }
+                                recStatusProcess.running = true
                             }
                         }
                     }
@@ -1124,7 +1138,7 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.isSettingsOpen = false
-                                Quickshell.execDetached(["sh", "-c", "killall qs; qs -p $HOME/DARK_NIRI/quickshell/shell.qml & notify-send 'Niri' 'Bar & Environment Reloaded' -i view-refresh"])
+                                Quickshell.execDetached(["sh", "-c", "killall qs; qs -d -p $HOME/DARK_NIRI/quickshell/shell.qml & notify-send 'Niri' 'Bar & Environment Reloaded' -i view-refresh"])
                             }
                         }
                     }
@@ -1671,7 +1685,10 @@ Item {
                                 id: wifiCloseMouse
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: root.isWifiOpen = false
+                                onClicked: {
+                                    root.isWifiOpen = false
+                                    root.wifiSelectedSsid = ""
+                                }
                             }
                         }
                     }
@@ -1897,11 +1914,9 @@ Item {
                                             onClicked: {
                                                 if (modelData.wps || modelData.saved || modelData.security === "Open") {
                                                     Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wifi.sh", "wps", modelData.ssid])
-                                                    wifiListProcess.running = true
+                                                    wifiRefreshTimer.restart()
                                                 } else {
                                                     root.wifiSelectedSsid = modelData.ssid
-                                                    pwdInput.text = ""
-                                                    pwdInput.forceActiveFocus()
                                                 }
                                             }
                                         }
@@ -1912,154 +1927,16 @@ Item {
                                     id: netHover
                                     anchors.fill: parent
                                     hoverEnabled: true
+                                    cursorShape: modelData.connected ? Qt.ArrowCursor : Qt.PointingHandCursor
                                     z: -1
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // In-Modal Password Entry Dialog for Wi-Fi Network
-            Rectangle {
-                id: passwordModal
-                visible: root.wifiSelectedSsid !== ""
-                anchors.fill: parent
-                radius: 20
-                color: "#E616161e"
-                z: 100
-
-                MouseArea { anchors.fill: parent }
-
-                Rectangle {
-                    width: 440
-                    height: 220
-                    radius: 16
-                    color: "#1a1b26"
-                    border.color: "#7aa2f7"
-                    border.width: 1.5
-                    anchors.centerIn: parent
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 20
-                        spacing: 14
-
-                        Row {
-                            spacing: 12
-                            Text { text: "󰌾"; color: "#7aa2f7"; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
-                            Column {
-                                spacing: 2
-                                Text { text: "Wi-Fi Authentication"; color: "#c0caf5"; font.pixelSize: 15; font.bold: true }
-                                Text { text: "Enter password for \"" + root.wifiSelectedSsid + "\""; color: "#7dcfff"; font.pixelSize: 12; elide: Text.ElideRight; width: 330 }
-                            }
-                        }
-
-                        Rectangle { width: parent.width; height: 1; color: "#292e42" }
-
-                        // Password Input Field
-                        Rectangle {
-                            width: parent.width
-                            height: 42
-                            radius: 8
-                            color: "#16161e"
-                            border.color: pwdInput.activeFocus ? "#7aa2f7" : "#3b4261"
-                            border.width: 1
-
-                            Row {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 8
-
-                                TextInput {
-                                    id: pwdInput
-                                    width: parent.width - 32
-                                    height: parent.height
-                                    color: "#c0caf5"
-                                    font.pixelSize: 14
-                                    echoMode: showPwd.checked ? TextInput.Normal : TextInput.Password
-                                    clip: true
-                                    verticalAlignment: TextInput.AlignVCenter
-                                    focus: root.wifiSelectedSsid !== ""
-                                    onAccepted: {
-                                        if (text.trim() !== "") {
-                                            Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wifi.sh", "connect", root.wifiSelectedSsid, text.trim()])
-                                            root.wifiSelectedSsid = ""
-                                            wifiListProcess.running = true
-                                        }
-                                    }
-
-                                    Text {
-                                        text: "Enter network password..."
-                                        color: "#565f89"
-                                        font.pixelSize: 13
-                                        visible: pwdInput.text === "" && !pwdInput.activeFocus
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-                                }
-
-                                // Eye toggle icon
-                                Text {
-                                    id: showPwd
-                                    property bool checked: false
-                                    text: checked ? "󰈈" : "󰈉"
-                                    color: checked ? "#7aa2f7" : "#565f89"
-                                    font.pixelSize: 18
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: showPwd.checked = !showPwd.checked
-                                    }
-                                }
-                            }
-                        }
-
-                        // Action Buttons
-                        Row {
-                            anchors.right: parent.right
-                            spacing: 10
-
-                            Rectangle {
-                                width: 90
-                                height: 36
-                                radius: 8
-                                color: cancelHover.containsMouse ? "#24283b" : "#1f2335"
-                                border.color: "#3b4261"
-                                border.width: 1
-
-                                Text { text: "Cancel"; color: "#c0caf5"; font.pixelSize: 13; anchors.centerIn: parent }
-
-                                MouseArea {
-                                    id: cancelHover
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        root.wifiSelectedSsid = ""
-                                        pwdInput.text = ""
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                width: 110
-                                height: 36
-                                radius: 8
-                                color: connHover.containsMouse ? "#89b4fa" : "#7aa2f7"
-
-                                Text { text: "Connect"; color: "#1a1b26"; font.pixelSize: 13; font.bold: true; anchors.centerIn: parent }
-
-                                MouseArea {
-                                    id: connHover
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (pwdInput.text.trim() !== "") {
-                                            Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wifi.sh", "connect", root.wifiSelectedSsid, pwdInput.text.trim()])
-                                            root.wifiSelectedSsid = ""
-                                            pwdInput.text = ""
-                                            wifiListProcess.running = true
+                                        if (!modelData.connected) {
+                                            if (modelData.wps || modelData.saved || modelData.security === "Open") {
+                                                Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wifi.sh", "wps", modelData.ssid])
+                                                wifiRefreshTimer.restart()
+                                            } else {
+                                                root.wifiSelectedSsid = modelData.ssid
+                                            }
                                         }
                                     }
                                 }
@@ -2930,6 +2807,245 @@ Item {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Dedicated Wi-Fi Authentication Dialog (Overlay PanelWindow with full keyboard focus)
+    PanelWindow {
+        id: wifiAuthModalWindow
+        visible: root.wifiSelectedSsid !== ""
+        color: "transparent"
+
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: root.wifiSelectedSsid !== "" ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
+
+        // Dark dim backdrop with click-to-dismiss
+        Rectangle {
+            anchors.fill: parent
+            color: "#80000000"
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    root.wifiSelectedSsid = ""
+                    pwdInput.text = ""
+                }
+            }
+
+            // Modal Card
+            Rectangle {
+                width: 440
+                height: 240
+                radius: 16
+                color: "#1a1b26"
+                border.color: "#7aa2f7"
+                border.width: 1.5
+                anchors.centerIn: parent
+
+                MouseArea {
+                    anchors.fill: parent
+                    // Absorb clicks inside card so they don't dismiss the modal
+                }
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 14
+
+                    Row {
+                        spacing: 12
+                        Text { text: "󰌾"; color: "#7aa2f7"; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                        Column {
+                            spacing: 2
+                            Text { text: "Wi-Fi Authentication"; color: "#c0caf5"; font.pixelSize: 15; font.bold: true }
+                            Text { text: "Enter password for \"" + root.wifiSelectedSsid + "\""; color: "#7dcfff"; font.pixelSize: 12; elide: Text.ElideRight; width: 330 }
+                        }
+                    }
+
+                    Rectangle { width: parent.width; height: 1; color: "#292e42" }
+
+                    // Password Input Field
+                    Rectangle {
+                        width: parent.width
+                        height: 42
+                        radius: 8
+                        color: "#16161e"
+                        border.color: pwdInput.activeFocus ? "#7aa2f7" : "#3b4261"
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            spacing: 8
+
+                            Item {
+                                width: parent.width - 32
+                                height: parent.height
+
+                                TextInput {
+                                    id: pwdInput
+                                    anchors.fill: parent
+                                    color: "#c0caf5"
+                                    font.pixelSize: 14
+                                    echoMode: showPwd.checked ? TextInput.Normal : TextInput.Password
+                                    clip: true
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    focus: true
+                                    Keys.onEscapePressed: {
+                                        root.wifiSelectedSsid = ""
+                                        pwdInput.text = ""
+                                    }
+                                    onAccepted: {
+                                        if (text.trim() !== "") {
+                                            Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wifi.sh", "connect", root.wifiSelectedSsid, text.trim()])
+                                            root.wifiSelectedSsid = ""
+                                            pwdInput.text = ""
+                                            wifiRefreshTimer.restart()
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: "Enter network password..."
+                                    color: "#565f89"
+                                    font.pixelSize: 13
+                                    visible: pwdInput.text === "" && !pwdInput.activeFocus
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            // Eye toggle icon
+                            Text {
+                                id: showPwd
+                                property bool checked: false
+                                text: checked ? "󰈈" : "󰈉"
+                                color: checked ? "#7aa2f7" : "#565f89"
+                                font.pixelSize: 18
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: showPwd.checked = !showPwd.checked
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.IBeamCursor
+                            z: -1
+                            onClicked: pwdInput.forceActiveFocus()
+                        }
+                    }
+
+                    // Action Buttons Row
+                    Row {
+                        anchors.right: parent.right
+                        spacing: 10
+
+                        // Rofi Prompt button as quick alternative
+                        Rectangle {
+                            width: 125
+                            height: 36
+                            radius: 8
+                            color: rofiHover.containsMouse ? "#24283b" : "#1f2335"
+                            border.color: "#3b4261"
+                            border.width: 1
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 6
+                                Text { text: "󰌾"; color: "#7dcfff"; font.pixelSize: 12 }
+                                Text { text: "Rofi Prompt"; color: "#c0caf5"; font.pixelSize: 12 }
+                            }
+
+                            MouseArea {
+                                id: rofiHover
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    let curSsid = root.wifiSelectedSsid
+                                    root.wifiSelectedSsid = ""
+                                    pwdInput.text = ""
+                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wifi.sh", "connect-rofi", curSsid])
+                                    wifiRefreshTimer.restart()
+                                }
+                            }
+                        }
+
+                        // Cancel Button
+                        Rectangle {
+                            width: 80
+                            height: 36
+                            radius: 8
+                            color: cancelHover.containsMouse ? "#24283b" : "#1f2335"
+                            border.color: "#3b4261"
+                            border.width: 1
+
+                            Text { text: "Cancel"; color: "#c0caf5"; font.pixelSize: 13; anchors.centerIn: parent }
+
+                            MouseArea {
+                                id: cancelHover
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.wifiSelectedSsid = ""
+                                    pwdInput.text = ""
+                                }
+                            }
+                        }
+
+                        // Connect Button
+                        Rectangle {
+                            width: 95
+                            height: 36
+                            radius: 8
+                            color: connHover.containsMouse ? "#89b4fa" : "#7aa2f7"
+
+                            Text { text: "Connect"; color: "#1a1b26"; font.pixelSize: 13; font.bold: true; anchors.centerIn: parent }
+
+                            MouseArea {
+                                id: connHover
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (pwdInput.text.trim() !== "") {
+                                        Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wifi.sh", "connect", root.wifiSelectedSsid, pwdInput.text.trim()])
+                                        root.wifiSelectedSsid = ""
+                                        pwdInput.text = ""
+                                        wifiRefreshTimer.restart()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Timer {
+            id: focusTimer
+            interval: 50
+            repeat: false
+            onTriggered: pwdInput.forceActiveFocus()
+        }
+
+        onVisibleChanged: {
+            if (visible) {
+                pwdInput.text = ""
+                pwdInput.forceActiveFocus()
+                focusTimer.restart()
+            } else {
+                pwdInput.text = ""
             }
         }
     }

@@ -21,4 +21,4 @@ This document audits all 14 shell and Python helper scripts in the repository.
 | `quickshell/shutdown.sh` | Bash | Sudo password wrapper using Rofi for emergency shutdown | Yes |
 | `quickshell/sysinfo.sh` | Bash | Hardware sensor gatherer (CPU %, Temp, Fan, RAM, Net delta, GPUs) | Yes |
 | `quickshell/wallpaper.sh` | Bash | Wallpaper manager for images, videos (`mpvpaper`), and canvas colors | Yes |
-| `quickshell/wifi.sh` | Python 3 | Wi-Fi network manager, password connector, and D-Bus WPS monitor | Yes |
+| `quickshell/wifi.sh` | Python 3 | Wi-Fi network manager with dynamic dev detection, password connector, Rofi fallback, and D-Bus WPS monitor | Yes |

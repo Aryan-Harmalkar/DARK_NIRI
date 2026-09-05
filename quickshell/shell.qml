@@ -1,10 +1,12 @@
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import QtQuick
 import "components" as Components
 
 PanelWindow {
     id: barWindow
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     
     // Position at the top of the screen
     anchors {

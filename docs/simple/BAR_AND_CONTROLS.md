@@ -49,6 +49,11 @@ Click the **Gallery button** in the Control Center to browse:
 3. **Canvas Colors**: Minimal solid color backgrounds.
 
 ### Wi-Fi Connecting
-1. Click the Wi-Fi card in the Control Center.
-2. Select your network from the list.
-3. If WPS is available, it will connect instantly! Otherwise, type your password and click Connect.
+1. Click the Wi-Fi card in the Control Center (or the Wi-Fi icon).
+2. Click any available network from the list.
+3. If WPS or a saved profile is available, it will connect immediately!
+4. Otherwise, a sleek centered authentication dialog appears with full keyboard focus:
+   - Type your password and press **Enter** (or click **Connect**).
+   - Click the **eye icon** to toggle password visibility.
+   - Press **Escape** or click anywhere outside to cancel.
+   - Click **Rofi Prompt** if you prefer the standard application launcher prompt.

@@ -10,16 +10,28 @@ This document explains the network architecture handled by `quickshell/wifi.sh` 
 
 ### Actions Supported
 - `list`: Scans available Wi-Fi access points, reads signal strength, band (2.4/5GHz), security, active state, and checks D-Bus for WPS flags. Outputs JSON.
-- `toggle`: Toggles Wi-Fi radio between enabled and disabled.
-- `connect <ssid> [password]`: Connects to network using NetworkManager.
-- `wps <ssid>`: Connects using WPS Push Button Configuration (PBC).
-- `disconnect`: Disconnects active wireless connection.
+- `toggle`: Toggles Wi-Fi radio between enabled and disabled with desktop notifications.
+- `connect <ssid> [password]`: Connects to network using NetworkManager with desktop notifications and error reporting.
+- `connect-rofi <ssid>`: Prompts for network password via themed Rofi dialog and connects.
+- `wps <ssid>`: Connects using WPS Push Button Configuration (PBC) or auto-connects open/saved profiles.
+- `disconnect`: Disconnects active wireless connection with dynamic interface detection.
 - `forget <ssid>`: Deletes saved connection profile.
 - `rescan`: Forces an active Wi-Fi scan and returns updated list.
 
 ---
 
-## 2. Advanced WPS Detection via D-Bus
+## 2. Wayland Layer-Shell Password Authentication Architecture
+
+In Wayland layer shell (`zwlr_layer_surface_v1`), popups (`xdg_popup`) attached to layer surfaces cannot receive standard keyboard input or grabs. To solve this, `Settings.qml` uses a dedicated overlay `PanelWindow` (`wifiAuthModalWindow`) with:
+- `WlrLayershell.layer: WlrLayer.Overlay`
+- `WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive`
+- Full-screen dimmed backdrop with click-to-dismiss and `Keys.onEscapePressed`
+- In-place password input with toggle show/hide eye icon, Enter key submission, and auto focus
+- Fallback "Rofi Prompt" button option for alternative input
+
+---
+
+## 3. Advanced WPS Detection via D-Bus
 
 `wifi.sh` queries the D-Bus object path of each access point to check for WPS support:
 ```python
