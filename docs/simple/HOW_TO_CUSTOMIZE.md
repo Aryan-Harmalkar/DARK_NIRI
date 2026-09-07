@@ -46,6 +46,13 @@ Here are simple instructions for the most common customizations.
 
 1. Open `~/DARK_NIRI/niri/config.kdl`.
 2. Find the `layout { ... }` section:
-   - To make gaps bigger or smaller, change `gaps 16` (e.g. `gaps 8` or `gaps 24`).
-   - To change active window border color, edit `active-color "#7c4dff"` under `focus-ring`.
-3. Save the file.
+   - To add gaps back between windows, change `gaps 0` (e.g. `gaps 8` or `gaps 16`).
+   - To re-enable or customize borders/focus rings, replace `focus-ring { off }` with:
+     ```kdl
+     focus-ring {
+         width 3
+         active-color "#7aa2f7"
+         inactive-color "#24283b"
+     }
+     ```
+3. Save the file. Niri reloads automatically!

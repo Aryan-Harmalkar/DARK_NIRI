@@ -23,7 +23,7 @@ input {
 }
 
 layout {
-    gaps 16
+    gaps 0
     center-focused-column "never"
 
     preset-column-widths {
@@ -35,15 +35,11 @@ layout {
     default-column-width { proportion 0.5; }
     
     focus-ring {
-        width 4
-        active-color "#7c4dff"
-        inactive-color "#303030"
+        off
     }
 
     border {
-        width 2
-        active-color "#ffc107"
-        inactive-color "#505050"
+        off
     }
     
     struts {
@@ -114,3 +110,5 @@ binds {
     // Clipboard Manager
     Mod+V { spawn "sh" "-c" "cliphist list | rofi -dmenu -theme $HOME/DARK_NIRI/rofi/config.rasi -p 'Clipboard' | cliphist decode | wl-copy"; }
 }
+
+include "outputs.kdl"

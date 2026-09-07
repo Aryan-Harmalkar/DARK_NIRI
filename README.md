@@ -32,7 +32,7 @@
 - ⚙️ **Integrated Control Center (`Settings.qml`)**: 2,936 lines of modular QML providing quick toggles, master volume/brightness sliders, and interactive modals.
 - 📶 **Wi-Fi Manager with WPS Support**: Scans networks, prompts for credentials, and interrogates D-Bus AP flags for instant WPS pairing.
 - 🔵 **Bluetooth Manager & Audio Profiles**: Scans, pairs, and switches between High Fidelity (`A2DP`) and Headset (`HSP/HFP`) profiles.
-- 🖼️ **Multi-Mode Wallpaper Engine**: Supports static images (`swaybg`), animated live videos (`mpvpaper`), and solid canvas colors with thumbnail caching.
+- 🖼️ **Multi-Mode Wallpaper Engine**: QML-native wallpaper system with crossfade transitions, time-of-day color overlay, floating particles, and mouse parallax effects. Also supports video wallpapers via `mpvpaper`.
 - 📊 **Real-Time Hardware Telemetry**: Live CPU %, thermals, fan RPM, RAM usage, persistent daily/monthly network data usage, AMD iGPU, and NVIDIA dGPU telemetry.
 - 🎵 **MPRIS Media Player**: Album art preview, hover controls, previous/play/pause/next, and position seeking.
 - 📹 **Screencasting Controller**: Region screen recording with live pulse indicator and pause/resume capabilities (`wf-recorder`).

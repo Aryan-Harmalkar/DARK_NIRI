@@ -41,7 +41,7 @@ input {
 ### 2.3 Layout & Aesthetic Geometry
 ```kdl
 layout {
-    gaps 16
+    gaps 0
     center-focused-column "never"
 
     preset-column-widths {
@@ -53,15 +53,11 @@ layout {
     default-column-width { proportion 0.5; }
     
     focus-ring {
-        width 4
-        active-color "#7c4dff"
-        inactive-color "#303030"
+        off
     }
 
     border {
-        width 2
-        active-color "#ffc107"
-        inactive-color "#505050"
+        off
     }
     
     struts {
@@ -69,11 +65,10 @@ layout {
     }
 }
 ```
-- **Gaps**: 16px padding between columns and screen edges.
+- **Gaps**: `0` for a seamless gapless tiling layout with windows flush against each other.
 - **Preset Column Proportions**: 1/3 (0.33333), 1/2 (0.5), and 2/3 (0.66667).
 - **Default Column Width**: Windows spawn taking exactly 50% of the screen width.
-- **Focus Ring**: 4px border highlighting active focus in electric purple (`#7c4dff`) and inactive windows in dark gray (`#303030`).
-- **Outer Border**: 2px secondary border in amber gold (`#ffc107`).
+- **Focus Ring & Border**: Disabled (`off`) for clean, distraction-free window frames without colored focus outlines.
 
 ### 2.4 Window Rules
 ```kdl

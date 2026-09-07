@@ -17,7 +17,7 @@ This document details display backlight control and the multi-mode wallpaper man
 Supports three distinct wallpaper modes:
 
 ### 2.1 Static Images
-- **Tool**: `swaybg -i <path> -m fill &`
+- **Tool**: QuickShell native `WallpaperWindow` (QML)
 - **Supported Formats**: JPG, JPEG, PNG, WEBP.
 
 ### 2.2 Live Video Wallpapers
@@ -26,7 +26,7 @@ Supports three distinct wallpaper modes:
 - **Thumbnail Generation**: Automatically generated and cached in `~/.cache/wallpaper_thumbnails/` using `ffmpegthumbnailer` or `ffmpeg`.
 
 ### 2.3 Canvas Solid Colors
-- **Tool**: `swaybg -c <#hex> &`
+- **Tool**: QuickShell native `WallpaperWindow` (QML)
 - **Purpose**: Low-resource solid color backgrounds for minimal distraction.
 
 ### 2.4 State Persistence

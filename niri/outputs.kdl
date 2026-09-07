@@ -1,0 +1,7 @@
+// Output configuration managed by Niri Display Manager
+
+output "eDP-1" {
+    mode "1920x1080@144.003"
+    scale 1
+    position x=-50 y=626
+}
