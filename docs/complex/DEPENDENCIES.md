@@ -35,7 +35,6 @@ This document maps every UI component and script in Dark Niri to the exact binar
 | `quickshell/shutdown.sh` | `rofi -dmenu -password ...` | `rofi-wayland` | System | Sudo password prompt does not open |
 | `quickshell/sysinfo.sh` | `free -b` | `procps-ng` | Monitoring | RAM percentage and used GB calculation fail |
 | `quickshell/sysinfo.sh` | `nvidia-smi --query-gpu=...` | `nvidia-utils` | Monitoring | NVIDIA GPU metrics output 0 / inactive |
-| `quickshell/wallpaper.sh`| `swaybg -i ... -m fill` | `swaybg` | Wallpaper | Static image wallpaper does not render |
-| `quickshell/wallpaper.sh`| `mpvpaper -o ...` | `mpvpaper` | Wallpaper | Animated live video wallpaper fails |
-| `quickshell/wallpaper.sh`| `ffmpegthumbnailer -i ...` | `ffmpegthumbnailer` | Wallpaper | Video wallpaper preview thumbnails fallback to ffmpeg |
+| `quickshell/wallpaper-engine/engine.py` | `WebKit.WebView()`, `Gtk4LayerShell` | `webkitgtk-6.0`, `gtk4-layer-shell`, `python-gobject` | Wallpaper | HTML/Web wallpaper engine fails to initialize |
+| `quickshell/wallpaper-engine/wallpaperctl` | IPC UNIX socket commands | `python` | Wallpaper Controller | CLI wallpaper switching fails |
 | `quickshell/components/Workspaces.qml`| `niri msg -j workspaces` | `niri` | Compositor IPC | Workspace indicator pills render empty |

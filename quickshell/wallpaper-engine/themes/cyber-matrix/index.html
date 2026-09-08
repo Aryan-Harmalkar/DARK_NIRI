@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin:0; padding:0; overflow:hidden; }
+    body { background: #16161e; width: 100vw; height: 100vh; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const c = document.getElementById('c');
+    const ctx = c.getContext('2d');
+    let w, h;
+    function resize() {
+      w = c.width = window.innerWidth;
+      h = c.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネハヒフヘホマミムメモヤユヨラリルレロワヲン1234567890ABCDEF<>{}+-*/';
+    const fontSize = 15;
+    let cols = Math.floor(window.innerWidth / fontSize);
+    let drops = Array(cols).fill(1);
+
+    function draw() {
+      ctx.fillStyle = 'rgba(22, 22, 30, 0.08)';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.font = fontSize + 'px monospace';
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars.charAt(Math.floor(Math.random() * chars.length));
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+
+        // Head glyph glows white/cyan
+        if (Math.random() > 0.85) {
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = '#7dcfff';
+        } else {
+          ctx.fillStyle = '#7aa2f7';
+          ctx.shadowBlur = 0;
+        }
+
+        ctx.fillText(text, x, y);
+
+        if (y > h && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+      setTimeout(() => requestAnimationFrame(draw), 33);
+    }
+    draw();
+  </script>
+</body>
+</html>

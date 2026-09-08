@@ -81,6 +81,10 @@ TMR
     systemctl --user daemon-reload 2>/dev/null
     systemctl --user enable --now qs-net-tracker.timer 2>/dev/null
     systemctl --user enable --now qs-net-tracker.service 2>/dev/null
+
+    # Link wallpaper engine service
+    ln -sf "$SOURCE_DIR/quickshell/wallpaper-engine/quickshell-wallpaper.service" "$SYSTEMD_DIR/quickshell-wallpaper.service"
+    systemctl --user daemon-reload 2>/dev/null
 fi
 
 echo "✨ Deployment complete! You can now start Niri."

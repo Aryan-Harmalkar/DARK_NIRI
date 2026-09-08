@@ -1,6 +1,6 @@
 # 🖥️ Display & Wallpaper Management Subsystem
 
-This document details display backlight control and the multi-mode wallpaper management engine.
+This document details display backlight control and the modular HTML/Web Wallpaper Engine.
 
 ---
 
@@ -12,22 +12,31 @@ This document details display backlight control and the multi-mode wallpaper man
 
 ---
 
-## 2. Wallpaper Engine (`quickshell/wallpaper.sh`)
+## 2. HTML/Web Wallpaper Engine (`quickshell/wallpaper-engine/`)
 
-Supports three distinct wallpaper modes:
+The background wallpaper layer is powered by a dedicated hardware-accelerated process built with `gtk4-layer-shell` and `webkitgtk-6.0`, isolated from QuickShell.
 
-### 2.1 Static Images
-- **Tool**: QuickShell native `WallpaperWindow` (QML)
-- **Supported Formats**: JPG, JPEG, PNG, WEBP.
+Detailed architecture and developer APIs: [`docs/wallpapers.md`](../wallpapers.md).
 
-### 2.2 Live Video Wallpapers
-- **Tool**: `mpvpaper -o "no-audio loop pause=no" '*' <path> &`
-- **Supported Formats**: MP4, WEBM, GIF, MKV.
-- **Thumbnail Generation**: Automatically generated and cached in `~/.cache/wallpaper_thumbnails/` using `ffmpegthumbnailer` or `ffmpeg`.
+### 2.1 Supported Modes
 
-### 2.3 Canvas Solid Colors
-- **Tool**: QuickShell native `WallpaperWindow` (QML)
-- **Purpose**: Low-resource solid color backgrounds for minimal distraction.
+1. **Self-Contained Web Themes**:
+   - Directory-based HTML/CSS/JS/WebGL themes (`cyber-city`, `aurora`, `cyber-matrix`, `particles`, `waves`, `fallback`).
+   - Integrated with the sandboxed `window.wallpaper` bridge for live hardware, workspace, and media reactivity.
 
-### 2.4 State Persistence
-The active wallpaper or color is saved to `~/.config/niri/current_wallpaper` and restored on login via `wallpaper.sh init`.
+2. **Universal Image & Video Wallpapers**:
+   - All pictures (`.png`, `.jpg`, `.webp`) and animated videos (`.mp4`, `.webm`) from `~/Pictures/Wallpapers/` are loaded via a hardware-accelerated HTML5 viewer.
+   - Live custom effects (particles, parallax, solar lighting, rain/snow, cyber HUD clock, vignette, scanlines) render directly over the wallpaper in real time.
+
+3. **Solid Tokyo Night Canvas Colors**:
+   - Clean, zero-CPU solid color backdrops.
+
+### 2.2 CLI Controller (`wallpaperctl`)
+- `wallpaperctl start | stop | restart | status | reload | init`
+- `wallpaperctl set <path_or_theme>`
+- `wallpaperctl color <#hex>`
+- `wallpaperctl set-effect <key> <value>`
+- `wallpaperctl random`
+
+### 2.3 State Persistence
+The active wallpaper target is saved to `~/.config/niri/current_wallpaper` and `quickshell/wallpaper-engine/config.json`, and restored on login via `wallpaperctl init &` in `niri/startup.sh`.

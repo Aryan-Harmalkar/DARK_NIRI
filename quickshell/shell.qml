@@ -5,9 +5,6 @@ import QtQuick
 import "components" as Components
 
 ShellRoot {
-    // Interactive wallpaper background window
-    WallpaperWindow {}
-
     // Top status bar
     PanelWindow {
         id: barWindow

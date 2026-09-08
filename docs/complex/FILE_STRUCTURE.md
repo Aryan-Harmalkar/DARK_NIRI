@@ -34,7 +34,13 @@ DARK_NIRI/
 │   ├── screencast.sh               # Screen recording controller (wf-recorder) (Bash)
 │   ├── shutdown.sh                 # Sudo shutdown password helper (Bash)
 │   ├── sysinfo.sh                  # Hardware metrics telemetry gatherer (Bash)
-│   ├── wallpaper.sh                # Wallpaper manager (images, videos, colors) (Bash)
+│   ├── wallpaper.sh                # Wallpaper compatibility bridge delegator (Bash)
+│   ├── wallpaper-engine/           # Modular HTML/Web Wallpaper Engine subsystem
+│   │   ├── engine.py               # Core GTK4 Layer Shell + WebKit6 background engine
+│   │   ├── wallpaperctl            # Engine CLI controller and IPC client
+│   │   ├── config.json             # Persistent engine & effect configuration
+│   │   ├── quickshell-wallpaper.service # Systemd user service unit
+│   │   └── themes/                 # Self-contained web themes (cyber-city, aurora, etc.)
 │   ├── wifi.sh                     # Wi-Fi network manager & WPS monitor (Python)
 │   └── components/                 # Reusable QML widgets & control center modules
 │       ├── Audio.qml               # Top bar audio volume & mute indicator

@@ -11,17 +11,15 @@ systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 # Kill any existing instances to avoid duplicates during config reloads
 killall mako 2>/dev/null
 killall qs 2>/dev/null
-# Kill legacy wallpaper processes — QML WallpaperWindow handles static images now
-killall swaybg 2>/dev/null
 
 # Start Mako with our custom config
 mako -c $HOME/DARK_NIRI/mako/config &
 
-# Start Quickshell bar detached (includes WallpaperWindow)
+# Start Quickshell top bar detached
 qs -d -p $HOME/DARK_NIRI/quickshell/shell.qml &
 
-# Restore active wallpaper (handles video fallback via mpvpaper)
-$HOME/DARK_NIRI/quickshell/wallpaper.sh init &
+# Initialize and restore HTML/Web Wallpaper Engine
+$HOME/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl init &
 
 # Start Clipboard Manager (cliphist)
 wl-paste --watch cliphist store &

@@ -25,8 +25,8 @@ This document audits all features provided by the **Dark Niri** desktop environm
 | **Wi-Fi Manager Modal** | Network | `Settings.qml`, `wifi.sh` | `nmcli`, `gdbus`, `python3` | **Implemented** | Network list, Password prompt, WPS detect |
 | **WPS Auto-Connect** | Network | `wifi.sh` | `nmcli`, `gdbus` | **Implemented** | D-Bus AP flag interrogation |
 | **Bluetooth Manager Modal**| Bluetooth | `Settings.qml`, `bluetooth.sh`| `bluetoothctl`, `pactl`, `python3` | **Implemented** | Discovery, Pairing, Battery %, A2DP/HFP |
-| **Wallpaper Manager** | Appearance | `Settings.qml`, `wallpaper.sh`| `swaybg`, `mpvpaper`, `ffmpeg` | **Implemented** | Static images, Live videos, Solid colors |
-| **Thumbnail Generator** | Appearance | `wallpaper.sh` | `ffmpegthumbnailer` / `ffmpeg` | **Implemented** | Cached in `~/.cache/wallpaper_thumbnails` |
+| **HTML/Web Wallpaper Engine** | Appearance | `Settings.qml`, `wallpaper-engine/`| `webkitgtk-6.0`, `gtk4-layer-shell`, `python3` | **Implemented** | Interactive HTML/WebGL themes, Videos, Images, Canvas colors, Live FX Customizer |
+| **Desktop Bridge API** | Appearance | `wallpaper-engine/engine.py` | `webkitgtk-6.0`, `niri`, `playerctl` | **Implemented** | Sandboxed `window.wallpaper` telemetry & event bridge |
 | **Interactive Notif Center**| Notifications | `Settings.qml`, `notifications.sh`| `makoctl`, `python3` | **Implemented** | List active/history, dismiss item, clear all |
 | **Power Profile Cycling** | Power | `Settings.qml`, `powerprofile.sh`| `powerprofilesctl` / sysfs | **Implemented** | Cycles: power-saver → balanced → performance |
 | **Screencasting Controller**| Media / Capture | `Screencast.qml`, `screencast.sh`| `wf-recorder`, `slurp` | **Implemented** | Start area recording, pause/resume, stop |

@@ -31,8 +31,7 @@
 - 🐚 **Custom QuickShell Top Bar**: 55px bar with 12 modular widgets (Workspaces, Clock, Hardware Monitor, Media, Network, Bluetooth, Audio, Mic, Brightness, Battery, Screencast, Control Center).
 - ⚙️ **Integrated Control Center (`Settings.qml`)**: 2,936 lines of modular QML providing quick toggles, master volume/brightness sliders, and interactive modals.
 - 📶 **Wi-Fi Manager with WPS Support**: Scans networks, prompts for credentials, and interrogates D-Bus AP flags for instant WPS pairing.
-- 🔵 **Bluetooth Manager & Audio Profiles**: Scans, pairs, and switches between High Fidelity (`A2DP`) and Headset (`HSP/HFP`) profiles.
-- 🖼️ **Multi-Mode Wallpaper Engine**: QML-native wallpaper system with crossfade transitions, time-of-day color overlay, floating particles, and mouse parallax effects. Also supports video wallpapers via `mpvpaper`.
+- 🖼️ **Modular HTML/Web Wallpaper Engine**: Hardware-accelerated background engine powered by `gtk4-layer-shell` and `webkitgtk-6.0`. Renders interactive HTML5, CSS3, Canvas, and WebGL themes (`cyber-city`, `aurora`, `cyber-matrix`, `particles`, `waves`) alongside user pictures and videos with live real-time particle, parallax, lighting, weather, and HUD clock customization.
 - 📊 **Real-Time Hardware Telemetry**: Live CPU %, thermals, fan RPM, RAM usage, persistent daily/monthly network data usage, AMD iGPU, and NVIDIA dGPU telemetry.
 - 🎵 **MPRIS Media Player**: Album art preview, hover controls, previous/play/pause/next, and position seeking.
 - 📹 **Screencasting Controller**: Region screen recording with live pulse indicator and pause/resume capabilities (`wf-recorder`).
@@ -50,14 +49,14 @@ sudo pacman -S --needed \
     pipewire wireplumber libpulse playerctl \
     networkmanager bluez bluez-utils \
     brightnessctl power-profiles-daemon lm_sensors upower \
-    swaybg ffmpegthumbnailer ffmpeg wf-recorder grim slurp wl-clipboard cliphist \
-    ttf-inter ttf-nerd-fonts-symbols papirus-icon-theme python git
+    webkitgtk-6.0 gtk4-layer-shell wf-recorder grim slurp wl-clipboard cliphist \
+    ttf-inter ttf-nerd-fonts-symbols papirus-icon-theme python python-gobject git
 
 # Enable Bluetooth, Wi-Fi, and Power Profile daemons
 sudo systemctl enable --now NetworkManager bluetooth power-profiles-daemon
 
-# Install QuickShell & video wallpaper engine from AUR (e.g. using yay)
-yay -S --needed quickshell-git mpvpaper
+# Install QuickShell from AUR (e.g. using yay)
+yay -S --needed quickshell-git
 ```
 
 ### 2. Deploy Dotfiles
@@ -109,6 +108,7 @@ The complete documentation suite is organized in the [`docs/`](docs/) directory:
 - 🔗 [**Dependency Matrix**](docs/complex/DEPENDENCIES.md)
 - 📜 [**Niri Deep Dive**](docs/complex/NIRI.md)
 - 🐚 [**QuickShell Architecture**](docs/complex/QUICKSHELL.md)
+- 🌐 [**HTML/Web Wallpaper Engine**](docs/wallpapers.md)
 - 📊 [**System Telemetry Subsystem**](docs/complex/SYSTEM_MONITOR.md)
 - 🎵 [**Media Player Subsystem**](docs/complex/MEDIA.md)
 - ⚙️ [**Control Center Details**](docs/complex/SETTINGS.md)

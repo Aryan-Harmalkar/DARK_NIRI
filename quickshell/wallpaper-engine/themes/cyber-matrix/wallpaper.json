@@ -1,0 +1,9 @@
+{
+  "name": "Tokyo Cyber Matrix",
+  "id": "cyber-matrix",
+  "version": "1.0",
+  "author": "DARK_NIRI",
+  "description": "Tokyo Night themed digital code stream with glowing glyphs.",
+  "entry": "index.html",
+  "type": "theme"
+}

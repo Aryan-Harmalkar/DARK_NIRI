@@ -1,0 +1,9 @@
+{
+  "name": "Chromatic Aurora",
+  "id": "aurora",
+  "version": "1.0",
+  "author": "DARK_NIRI",
+  "description": "Luminescent animated aurora ribbons inspired by Arctic skies.",
+  "entry": "index.html",
+  "type": "theme"
+}

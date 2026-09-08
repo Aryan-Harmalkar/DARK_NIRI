@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber City - Wallpaper Engine</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="city-container">
+    <canvas id="sky-canvas"></canvas>
+    <canvas id="city-canvas"></canvas>
+    <canvas id="traffic-canvas"></canvas>
+    <canvas id="rain-canvas"></canvas>
+  </div>
+
+  <div id="hud-overlay">
+    <div class="hud-top-left">
+      <div class="hud-brand">
+        <span class="hud-icon">◆</span>
+        <span class="hud-title">DARK_NIRI // SECTOR 07</span>
+      </div>
+      <div class="hud-sub" id="hud-workspace">WORKSPACE: 1</div>
+    </div>
+
+    <div class="hud-top-right">
+      <div class="hud-clock" id="hud-clock">00:00:00</div>
+      <div class="hud-date" id="hud-date">---, --- 00</div>
+      <div class="hud-telemetry" id="hud-telemetry">
+        <span id="tel-cpu">CPU: --%</span>
+        <span class="sep">|</span>
+        <span id="tel-mem">RAM: --%</span>
+        <span class="sep">|</span>
+        <span id="tel-bat">BAT: --%</span>
+      </div>
+    </div>
+
+    <div class="hud-bottom-left" id="hud-media-container">
+      <div class="hud-media-pill">
+        <span class="pulse-dot"></span>
+        <span class="media-title" id="hud-media-title">CYBER_RADIO // STANDBY</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

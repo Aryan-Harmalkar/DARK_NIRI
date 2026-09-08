@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallpaper Engine - Image Viewer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Layer 0: Background Canvas & Image Container -->
+  <div id="wallpaper-container">
+    <div id="wallpaper-image-wrapper">
+      <img id="wallpaper-image" alt="Wallpaper">
+      <video id="wallpaper-video" autoplay loop muted playsinline></video>
+    </div>
+  </div>
+
+  <!-- Layer 1: Time of Day Lighting Overlay -->
+  <div id="time-overlay"></div>
+
+  <!-- Layer 2: Atmospheric Weather Canvas -->
+  <canvas id="weather-canvas"></canvas>
+
+  <!-- Layer 3: Floating Particles Canvas -->
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- Layer 4: CRT Scanlines & Vignette -->
+  <div id="vignette-overlay"></div>
+  <div id="scanlines-overlay"></div>
+
+  <!-- Layer 5: Cyber HUD Clock & Date -->
+  <div id="clock-hud" class="hud-top-right">
+    <div class="hud-time" id="hud-time">12:00</div>
+    <div class="hud-date" id="hud-date">MON, SEP 07</div>
+    <div class="hud-status">
+      <span class="hud-dot"></span>
+      <span class="hud-tag">NIRI // WAYLAND</span>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

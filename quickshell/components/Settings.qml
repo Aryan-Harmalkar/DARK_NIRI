@@ -16,7 +16,10 @@ Item {
 
     property var wallpapers: []
     property string activeWallpaper: ""
-    property int selectedTab: 0 // 0: Static, 1: Animated/Live, 2: Canvas Colors
+    property int selectedTab: 0 // 0: Web Themes, 1: Wallpapers, 2: Effects & FX, 3: Performance, 4: Canvas Colors
+    property var engineConfig: ({})
+    property var engineStatus: ({})
+    property bool isEngineRunning: false
 
     // Notification State
     property var notifications: []
@@ -57,11 +60,33 @@ Item {
     function getFilteredWallpapers() {
         if (!root.wallpapers) return [];
         if (root.selectedTab === 0) {
-            return root.wallpapers.filter(w => w.type === "image");
+            return root.wallpapers.filter(w => w.type === "theme");
         } else if (root.selectedTab === 1) {
-            return root.wallpapers.filter(w => w.type === "video");
+            return root.wallpapers.filter(w => w.type === "image" || w.type === "video");
         }
         return [];
+    }
+
+    function setEffectValue(key, val) {
+        // Optimistic local state update for instantaneous zero-latency UI response
+        let cfg = Object.assign({}, root.engineConfig);
+        if (!cfg.effects) cfg.effects = {};
+        let topKeys = ["quality", "fps", "battery_saver", "pause_fullscreen", "mode", "active"];
+        if (topKeys.indexOf(key) !== -1) {
+            cfg[key] = val;
+        } else {
+            let parts = key.replace(/^effects\./, "").split(".");
+            let d = cfg.effects;
+            for (let i = 0; i < parts.length - 1; i++) {
+                if (!d[parts[i]]) d[parts[i]] = {};
+                d = d[parts[i]];
+            }
+            d[parts[parts.length - 1]] = val;
+        }
+        root.engineConfig = cfg;
+
+        Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "set-effect", key, "" + val]);
+        refreshConfigTimer.running = true;
     }
 
     // Notifications Backend Process
@@ -221,10 +246,10 @@ Item {
         }
     }
 
-    // Wallpapers background process
+    // Wallpapers background processes
     Process {
         id: listProcess
-        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper.sh", "list"]
+        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "list"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -240,12 +265,52 @@ Item {
 
     Process {
         id: activeProcess
-        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper.sh", "get"]
+        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "get"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
                 root.activeWallpaper = text.trim()
             }
+        }
+    }
+
+    Process {
+        id: configProcess
+        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "get-config"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.engineConfig = JSON.parse(text.trim())
+                } catch (e) {}
+            }
+        }
+    }
+
+    Process {
+        id: statusProcess
+        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "status"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    let st = JSON.parse(text.trim())
+                    root.engineStatus = st
+                    root.isEngineRunning = !!st.running
+                } catch (e) {
+                    root.isEngineRunning = false
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: refreshConfigTimer
+        interval: 200
+        repeat: false
+        onTriggered: {
+            configProcess.running = true
+            statusProcess.running = true
         }
     }
 
@@ -898,13 +963,13 @@ Item {
                             width: parent.width - 38 - 14 - 30
 
                             Text {
-                                text: "Wallpapers & Canvas"
+                                text: "Web Wallpaper Studio"
                                 color: "#c0caf5"
                                 font.pixelSize: 14
                                 font.bold: true
                             }
                             Text {
-                                text: "Live Video & Backdrops Gallery"
+                                text: "HTML5/WebGL Themes, Live Effects & FX"
                                 color: "#565f89"
                                 font.pixelSize: 12
                             }
@@ -927,6 +992,8 @@ Item {
                             root.isGalleryOpen = true
                             listProcess.running = true
                             activeProcess.running = true
+                            configProcess.running = true
+                            statusProcess.running = true
                         }
                     }
                 }
@@ -2374,17 +2441,17 @@ Item {
         }
     }
 
-    // Dedicated Wallpaper & Canvas Setter Modal (Anchored Top-Right, Slide Animation)
+    // Dedicated Web Wallpaper & Effects Studio Modal (Anchored Top-Right, Slide Animation)
     PopupWindow {
         id: galleryPopup
         anchor.window: barWindow
-        anchor.rect.x: Math.round(barWindow.width - 720 - 20)
+        anchor.rect.x: Math.round(barWindow.width - 820 - 20)
         anchor.rect.y: 55
-        anchor.rect.width: 720
+        anchor.rect.width: 820
         anchor.rect.height: 1
 
-        implicitWidth: 720
-        implicitHeight: 520
+        implicitWidth: 820
+        implicitHeight: 570
         visible: root.isGalleryOpen
         color: "transparent"
 
@@ -2419,11 +2486,20 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 12
 
-                    Text {
-                        text: "󰸉"
-                        color: "#7aa2f7"
-                        font.pixelSize: 22
-                        anchors.verticalCenter: parent.verticalCenter
+                    Rectangle {
+                        width: 38
+                        height: 38
+                        radius: 10
+                        color: "#16161e"
+                        border.color: "#7aa2f7"
+                        border.width: 1
+
+                        Text {
+                            text: "󰸉"
+                            color: "#7aa2f7"
+                            font.pixelSize: 20
+                            anchors.centerIn: parent
+                        }
                     }
 
                     Column {
@@ -2431,14 +2507,14 @@ Item {
                         spacing: 2
 
                         Text {
-                            text: "Wallpaper & Backdrop Setter"
+                            text: "Web Wallpaper Studio"
                             color: "#c0caf5"
                             font.pixelSize: 16
                             font.bold: true
                         }
 
                         Text {
-                            text: "Custom backgrounds for your Niri workspace"
+                            text: "HTML5/WebGL Engine & Real-Time Effect Customizer"
                             color: "#565f89"
                             font.pixelSize: 11
                         }
@@ -2449,6 +2525,47 @@ Item {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 10
+
+                    // Status Pill
+                    Rectangle {
+                        height: 30
+                        width: statusText.implicitWidth + 24
+                        radius: 15
+                        color: root.isEngineRunning ? "#1a2f26" : "#2f1a20"
+                        border.color: root.isEngineRunning ? "#9ece6a" : "#f7768e"
+                        border.width: 1
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 6
+                            Rectangle {
+                                width: 6
+                                height: 6
+                                radius: 3
+                                color: root.isEngineRunning ? "#9ece6a" : "#f7768e"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                id: statusText
+                                text: root.isEngineRunning ? "Engine Online" : "Start Engine"
+                                color: root.isEngineRunning ? "#9ece6a" : "#f7768e"
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (!root.isEngineRunning) {
+                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "start"]);
+                                    refreshConfigTimer.running = true;
+                                }
+                            }
+                        }
+                    }
 
                     // Refresh Button
                     Rectangle {
@@ -2474,6 +2591,8 @@ Item {
                             onClicked: {
                                 listProcess.running = true
                                 activeProcess.running = true
+                                configProcess.running = true
+                                statusProcess.running = true
                             }
                         }
                     }
@@ -2505,7 +2624,7 @@ Item {
                 }
             }
 
-            // Category Tab Bar
+            // Category Tab Bar (5 tabs)
             Rectangle {
                 id: tabBar
                 anchors.top: header.bottom
@@ -2513,7 +2632,7 @@ Item {
                 anchors.right: parent.right
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
-                height: 40
+                height: 42
                 radius: 10
                 color: "#16161e"
                 border.color: "#292e42"
@@ -2522,11 +2641,11 @@ Item {
                 Row {
                     anchors.fill: parent
                     anchors.margins: 4
-                    spacing: 6
+                    spacing: 4
 
-                    // Tab 0: Static Pictures
+                    // Tab 0: Web Themes
                     Rectangle {
-                        width: (parent.width - 12) / 3
+                        width: (parent.width - 16) / 5
                         height: parent.height
                         radius: 7
                         color: root.selectedTab === 0 ? "#24283b" : "transparent"
@@ -2535,9 +2654,9 @@ Item {
 
                         Row {
                             anchors.centerIn: parent
-                            spacing: 8
-                            Text { text: "󰸉"; color: root.selectedTab === 0 ? "#7aa2f7" : "#565f89"; font.pixelSize: 14 }
-                            Text { text: "Static Pictures"; color: root.selectedTab === 0 ? "#c0caf5" : "#565f89"; font.pixelSize: 12; font.bold: root.selectedTab === 0 }
+                            spacing: 6
+                            Text { text: "󰈹"; color: root.selectedTab === 0 ? "#7aa2f7" : "#565f89"; font.pixelSize: 13 }
+                            Text { text: "Web Themes"; color: root.selectedTab === 0 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 0 }
                         }
 
                         MouseArea {
@@ -2547,20 +2666,20 @@ Item {
                         }
                     }
 
-                    // Tab 1: Live / Animated
+                    // Tab 1: Wallpapers (Images & Videos)
                     Rectangle {
-                        width: (parent.width - 12) / 3
+                        width: (parent.width - 16) / 5
                         height: parent.height
                         radius: 7
                         color: root.selectedTab === 1 ? "#24283b" : "transparent"
-                        border.color: root.selectedTab === 1 ? "#f7768e" : "transparent"
+                        border.color: root.selectedTab === 1 ? "#bb9af7" : "transparent"
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
-                            spacing: 8
-                            Text { text: "󰐊"; color: root.selectedTab === 1 ? "#f7768e" : "#565f89"; font.pixelSize: 14 }
-                            Text { text: "Live / Animated"; color: root.selectedTab === 1 ? "#c0caf5" : "#565f89"; font.pixelSize: 12; font.bold: root.selectedTab === 1 }
+                            spacing: 6
+                            Text { text: "󰋩"; color: root.selectedTab === 1 ? "#bb9af7" : "#565f89"; font.pixelSize: 13 }
+                            Text { text: "Wallpapers"; color: root.selectedTab === 1 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 1 }
                         }
 
                         MouseArea {
@@ -2570,26 +2689,72 @@ Item {
                         }
                     }
 
-                    // Tab 2: Canvas Colors
+                    // Tab 2: Effects & FX
                     Rectangle {
-                        width: (parent.width - 12) / 3
+                        width: (parent.width - 16) / 5
                         height: parent.height
                         radius: 7
                         color: root.selectedTab === 2 ? "#24283b" : "transparent"
-                        border.color: root.selectedTab === 2 ? "#9ece6a" : "transparent"
+                        border.color: root.selectedTab === 2 ? "#7dcfff" : "transparent"
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
-                            spacing: 8
-                            Text { text: "󰏘"; color: root.selectedTab === 2 ? "#9ece6a" : "#565f89"; font.pixelSize: 14 }
-                            Text { text: "Canvas Colors"; color: root.selectedTab === 2 ? "#c0caf5" : "#565f89"; font.pixelSize: 12; font.bold: root.selectedTab === 2 }
+                            spacing: 6
+                            Text { text: "󰒓"; color: root.selectedTab === 2 ? "#7dcfff" : "#565f89"; font.pixelSize: 13 }
+                            Text { text: "Effects & FX"; color: root.selectedTab === 2 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 2 }
                         }
 
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.selectedTab = 2
+                        }
+                    }
+
+                    // Tab 3: Performance & Engine
+                    Rectangle {
+                        width: (parent.width - 16) / 5
+                        height: parent.height
+                        radius: 7
+                        color: root.selectedTab === 3 ? "#24283b" : "transparent"
+                        border.color: root.selectedTab === 3 ? "#f7768e" : "transparent"
+                        border.width: 1
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 6
+                            Text { text: "󰓅"; color: root.selectedTab === 3 ? "#f7768e" : "#565f89"; font.pixelSize: 13 }
+                            Text { text: "Performance"; color: root.selectedTab === 3 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 3 }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.selectedTab = 3
+                        }
+                    }
+
+                    // Tab 4: Canvas Colors
+                    Rectangle {
+                        width: (parent.width - 16) / 5
+                        height: parent.height
+                        radius: 7
+                        color: root.selectedTab === 4 ? "#24283b" : "transparent"
+                        border.color: root.selectedTab === 4 ? "#9ece6a" : "transparent"
+                        border.width: 1
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 6
+                            Text { text: "󰏘"; color: root.selectedTab === 4 ? "#9ece6a" : "#565f89"; font.pixelSize: 13 }
+                            Text { text: "Canvas Colors"; color: root.selectedTab === 4 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 4 }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.selectedTab = 4
                         }
                     }
                 }
@@ -2599,7 +2764,7 @@ Item {
             Rectangle {
                 id: divider
                 anchors.top: tabBar.bottom
-                anchors.topMargin: 12
+                anchors.topMargin: 10
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: 16
@@ -2608,37 +2773,167 @@ Item {
                 color: "#292e42"
             }
 
-            // Tab 0 & 1: Wallpaper Grid (Pictures & Animated Videos)
+            // TAB 0: Web Themes Grid
             Flickable {
-                visible: root.selectedTab !== 2
+                visible: root.selectedTab === 0
                 anchors.top: divider.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.margins: 16
-                contentHeight: grid.height
+                contentHeight: themeGrid.height
                 clip: true
 
                 Grid {
-                    id: grid
+                    id: themeGrid
                     columns: 3
                     spacing: 14
                     width: parent.width
 
                     Repeater {
-                        model: root.isGalleryOpen ? root.getFilteredWallpapers() : []
+                        model: root.isGalleryOpen && root.selectedTab === 0 ? root.getFilteredWallpapers() : []
 
                         delegate: Rectangle {
-                            id: card
-                            width: (grid.width - (grid.spacing * (grid.columns - 1))) / grid.columns
-                            height: 150
+                            width: (themeGrid.width - (themeGrid.spacing * 2)) / 3
+                            height: 160
                             radius: 12
                             color: "#16161e"
                             clip: true
-                            border.color: root.activeWallpaper === modelData.path ? "#7aa2f7" : (cardHover.containsMouse ? "#bb9af7" : "#292e42")
+                            border.color: root.activeWallpaper === modelData.path ? "#7aa2f7" : (themeHover.containsMouse ? "#bb9af7" : "#292e42")
                             border.width: root.activeWallpaper === modelData.path ? 2 : 1
 
-                            Behavior on border.color { ColorAnimation { duration: 150 } }
+                            // Top gradient thumbnail
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 90
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: modelData.path === "cyber-city" ? "#1f2335" : (modelData.path === "aurora" ? "#142533" : (modelData.path === "cyber-matrix" ? "#0f2b1d" : "#24283b")) }
+                                    GradientStop { position: 1.0; color: "#16161e" }
+                                }
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 8
+                                    Text {
+                                        text: modelData.path === "cyber-city" ? "󰈹" : (modelData.path === "aurora" ? "󰐊" : (modelData.path === "cyber-matrix" ? "󰘦" : "󰸉"))
+                                        color: modelData.path === "cyber-matrix" ? "#9ece6a" : "#7aa2f7"
+                                        font.pixelSize: 28
+                                    }
+                                }
+
+                                // Interactive Pill
+                                Rectangle {
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.margins: 8
+                                    height: 18
+                                    width: 78
+                                    radius: 9
+                                    color: "#8016161e"
+                                    border.color: "#7aa2f7"
+                                    border.width: 1
+
+                                    Text {
+                                        text: "INTERACTIVE"
+                                        color: "#7aa2f7"
+                                        font.pixelSize: 8
+                                        font.bold: true
+                                        anchors.centerIn: parent
+                                    }
+                                }
+                            }
+
+                            // Info area
+                            Column {
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.margins: 10
+                                spacing: 2
+
+                                Text {
+                                    text: modelData.name
+                                    color: root.activeWallpaper === modelData.path ? "#7aa2f7" : "#c0caf5"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                    width: parent.width
+                                }
+
+                                Text {
+                                    text: modelData.description || "Self-contained HTML theme"
+                                    color: "#565f89"
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                    width: parent.width
+                                }
+                            }
+
+                            // Active Checkmark Badge
+                            Rectangle {
+                                visible: root.activeWallpaper === modelData.path
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 8
+                                width: 22
+                                height: 22
+                                radius: 11
+                                color: "#7aa2f7"
+
+                                Text {
+                                    text: "✔"
+                                    color: "#1a1b26"
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                    anchors.centerIn: parent
+                                }
+                            }
+
+                            MouseArea {
+                                id: themeHover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "set", modelData.path])
+                                    root.activeWallpaper = modelData.path
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // TAB 1: User Wallpapers Grid (Images & Videos)
+            Flickable {
+                visible: root.selectedTab === 1
+                anchors.top: divider.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 16
+                contentHeight: wallGrid.height
+                clip: true
+
+                Grid {
+                    id: wallGrid
+                    columns: 3
+                    spacing: 14
+                    width: parent.width
+
+                    Repeater {
+                        model: root.isGalleryOpen && root.selectedTab === 1 ? root.getFilteredWallpapers() : []
+
+                        delegate: Rectangle {
+                            width: (wallGrid.width - (wallGrid.spacing * 2)) / 3
+                            height: 155
+                            radius: 12
+                            color: "#16161e"
+                            clip: true
+                            border.color: root.activeWallpaper === modelData.path ? "#bb9af7" : (cardHover.containsMouse ? "#7aa2f7" : "#292e42")
+                            border.width: root.activeWallpaper === modelData.path ? 2 : 1
 
                             Image {
                                 anchors.fill: parent
@@ -2648,65 +2943,53 @@ Item {
                                 sourceSize.height: 200
                                 fillMode: Image.PreserveAspectCrop
                                 asynchronous: true
-                                cache: true
                             }
 
-                            // Dynamic Video / Animation Badge
-                            Rectangle {
-                                visible: modelData.type === "video"
-                                anchors.top: parent.top
-                                anchors.left: parent.left
-                                anchors.margins: 8
-                                width: 24
-                                height: 24
-                                radius: 12
-                                color: "#CC16161e"
-                                border.color: "#7aa2f7"
-                                border.width: 1
-
-                                Text {
-                                    text: "󰐊"
-                                    color: "#7aa2f7"
-                                    font.pixelSize: 12
-                                    anchors.centerIn: parent
-                                }
-                            }
-
-                            // Dark gradient overlay at bottom for text readability
                             Rectangle {
                                 anchors.bottom: parent.bottom
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                height: 36
-                                color: "#CC16161e"
+                                width: parent.width
+                                height: 38
+                                color: "#D916161e"
 
-                                Text {
-                                    text: modelData.name
-                                    color: root.activeWallpaper === modelData.path ? "#7aa2f7" : "#c0caf5"
-                                    font.pixelSize: 11
-                                    font.bold: root.activeWallpaper === modelData.path
-                                    elide: Text.ElideMiddle
-                                    anchors.centerIn: parent
-                                    width: parent.width - 16
-                                    horizontalAlignment: Text.AlignHCenter
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
+
+                                    Text {
+                                        text: modelData.type === "video" ? "󰐊" : "󰋩"
+                                        color: modelData.type === "video" ? "#f7768e" : "#7aa2f7"
+                                        font.pixelSize: 13
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: modelData.name
+                                        color: root.activeWallpaper === modelData.path ? "#bb9af7" : "#c0caf5"
+                                        font.pixelSize: 11
+                                        font.bold: root.activeWallpaper === modelData.path
+                                        elide: Text.ElideRight
+                                        width: parent.width - 60
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
                                 }
                             }
 
-                            // Active checkmark badge
                             Rectangle {
                                 visible: root.activeWallpaper === modelData.path
                                 anchors.top: parent.top
                                 anchors.right: parent.right
                                 anchors.margins: 8
-                                width: 24
-                                height: 24
-                                radius: 12
-                                color: "#7aa2f7"
+                                width: 22
+                                height: 22
+                                radius: 11
+                                color: "#bb9af7"
 
                                 Text {
                                     text: "✔"
                                     color: "#1a1b26"
-                                    font.pixelSize: 12
+                                    font.pixelSize: 11
                                     font.bold: true
                                     anchors.centerIn: parent
                                 }
@@ -2718,7 +3001,7 @@ Item {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper.sh", "set", modelData.path])
+                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "set", modelData.path])
                                     root.activeWallpaper = modelData.path
                                 }
                             }
@@ -2727,14 +3010,1007 @@ Item {
                 }
             }
 
-            // Tab 2: Canvas / Backdrop Color Selector
-            Item {
+            // TAB 2: Effects & FX Customizer (Add, Remove & Tune Effects)
+            Flickable {
                 visible: root.selectedTab === 2
                 anchors.top: divider.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.margins: 16
+                contentHeight: effectsCol.height + 20
+                clip: true
+
+                Column {
+                    id: effectsCol
+                    width: parent.width
+                    spacing: 12
+
+                    // Card 1: Floating Particles
+                    Rectangle {
+                        width: parent.width
+                        height: 120
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 10
+
+                            Row {
+                                width: parent.width
+                                Item {
+                                    width: parent.width - 80
+                                    height: 24
+                                    Text { text: "Floating Ambient Particles"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                    Text { text: "Procedural glowing particle canvas layered over the wallpaper"; color: "#565f89"; font.pixelSize: 10; anchors.bottom: parent.bottom }
+                                }
+
+                                // Toggle Switch
+                                Rectangle {
+                                    width: 44
+                                    height: 22
+                                    radius: 11
+                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.enabled) ? "#7aa2f7" : "#24283b"
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Rectangle {
+                                        width: 18
+                                        height: 18
+                                        radius: 9
+                                        color: "#ffffff"
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        x: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.enabled) ? 24 : 2
+                                        Behavior on x { NumberAnimation { duration: 150 } }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            let cur = root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.enabled;
+                                            root.setEffectValue("particles.enabled", !cur);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Style & Density Selectors
+                            Row {
+                                spacing: 14
+                                Text { text: "Style:"; color: "#7aa2f7"; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+
+                                Repeater {
+                                    model: ["embers", "dust", "nodes"]
+                                    delegate: Rectangle {
+                                        width: 68
+                                        height: 24
+                                        radius: 6
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? "#7aa2f7" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? "#7aa2f7" : "#3b4261"
+                                        border.width: 1
+
+                                        Text {
+                                            text: modelData.toUpperCase()
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? "#1a1b26" : "#c0caf5"
+                                            font.pixelSize: 9
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.setEffectValue("particles.style", modelData)
+                                        }
+                                    }
+                                }
+
+                                Rectangle { width: 1; height: 18; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+
+                                Text { text: "Density:"; color: "#7aa2f7"; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+
+                                Repeater {
+                                    model: [20, 40, 80, 120]
+                                    delegate: Rectangle {
+                                        width: 36
+                                        height: 24
+                                        radius: 6
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? "#bb9af7" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? "#bb9af7" : "#3b4261"
+                                        border.width: 1
+
+                                        Text {
+                                            text: modelData
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? "#1a1b26" : "#c0caf5"
+                                            font.pixelSize: 9
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.setEffectValue("particles.count", modelData)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Card 2: Interactive Mouse Parallax
+                    Rectangle {
+                        width: parent.width
+                        height: 76
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            Column {
+                                width: parent.width - 240
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Text { text: "Interactive Mouse Parallax"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Hardware depth offset tilting wallpaper with global cursor movement"; color: "#565f89"; font.pixelSize: 10 }
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+
+                                Repeater {
+                                    model: [
+                                        { name: "Subtle", val: 1.5 },
+                                        { name: "Normal", val: 2.5 },
+                                        { name: "Dynamic", val: 4.0 }
+                                    ]
+                                    delegate: Rectangle {
+                                        width: 58
+                                        height: 24
+                                        radius: 6
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? "#7dcfff" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? "#7dcfff" : "#3b4261"
+                                        border.width: 1
+
+                                        Text {
+                                            text: modelData.name
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? "#1a1b26" : "#c0caf5"
+                                            font.pixelSize: 9
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.setEffectValue("parallax.depth", modelData.val)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Toggle Switch
+                            Rectangle {
+                                width: 44
+                                height: 22
+                                radius: 11
+                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.enabled) ? "#7dcfff" : "#24283b"
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    width: 18
+                                    height: 18
+                                    radius: 9
+                                    color: "#ffffff"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    x: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.enabled) ? 24 : 2
+                                    Behavior on x { NumberAnimation { duration: 150 } }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        let cur = root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.enabled;
+                                        root.setEffectValue("parallax.enabled", !cur);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Card 3: Time-of-Day Atmospheric Lighting
+                    Rectangle {
+                        width: parent.width
+                        height: 76
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            Column {
+                                width: parent.width - 320
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Text { text: "Time-of-Day Lighting"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Atmospheric solar color overlay matching real-world time"; color: "#565f89"; font.pixelSize: 10 }
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 5
+
+                                Repeater {
+                                    model: ["auto", "dawn", "day", "sunset", "night"]
+                                    delegate: Rectangle {
+                                        width: 50
+                                        height: 24
+                                        radius: 6
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? "#e0af68" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? "#e0af68" : "#3b4261"
+                                        border.width: 1
+
+                                        Text {
+                                            text: modelData.toUpperCase()
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? "#1a1b26" : "#c0caf5"
+                                            font.pixelSize: 8
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                if (modelData === "auto") {
+                                                    root.setEffectValue("time_lighting.mode", "auto");
+                                                } else {
+                                                    root.setEffectValue("time_lighting.mode", "manual");
+                                                    root.setEffectValue("time_lighting.preset", modelData);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Toggle Switch
+                            Rectangle {
+                                width: 44
+                                height: 22
+                                radius: 11
+                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && root.engineConfig.effects.time_lighting.enabled) ? "#e0af68" : "#24283b"
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    width: 18
+                                    height: 18
+                                    radius: 9
+                                    color: "#ffffff"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    x: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && root.engineConfig.effects.time_lighting.enabled) ? 24 : 2
+                                    Behavior on x { NumberAnimation { duration: 150 } }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        let cur = root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && root.engineConfig.effects.time_lighting.enabled;
+                                        root.setEffectValue("time_lighting.enabled", !cur);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Card 4: Atmospheric Weather Overlay
+                    Rectangle {
+                        width: parent.width
+                        height: 76
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            Column {
+                                width: parent.width - 200
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Text { text: "Weather Canvas Overlay"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Live animated rain or snow particle physics on desktop"; color: "#565f89"; font.pixelSize: 10 }
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+
+                                Repeater {
+                                    model: [
+                                        { id: "rain", label: "🌧 Rain" },
+                                        { id: "snow", label: "❄ Snow" }
+                                    ]
+                                    delegate: Rectangle {
+                                        width: 64
+                                        height: 24
+                                        radius: 6
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? "#7aa2f7" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? "#7aa2f7" : "#3b4261"
+                                        border.width: 1
+
+                                        Text {
+                                            text: modelData.label
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? "#1a1b26" : "#c0caf5"
+                                            font.pixelSize: 9
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.setEffectValue("weather.type", modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Toggle Switch
+                            Rectangle {
+                                width: 44
+                                height: 22
+                                radius: 11
+                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.enabled) ? "#7aa2f7" : "#24283b"
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    width: 18
+                                    height: 18
+                                    radius: 9
+                                    color: "#ffffff"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    x: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.enabled) ? 24 : 2
+                                    Behavior on x { NumberAnimation { duration: 150 } }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        let cur = root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.enabled;
+                                        root.setEffectValue("weather.enabled", !cur);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Card 5: Cyber HUD Clock & Date
+                    Rectangle {
+                        width: parent.width
+                        height: 76
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            Column {
+                                width: parent.width - 240
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Text { text: "Cyber HUD Clock & Date"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Neon heads-up display showing live time, date, and telemetry"; color: "#565f89"; font.pixelSize: 10 }
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 5
+
+                                Repeater {
+                                    model: [
+                                        { id: "top-right", label: "Top Right" },
+                                        { id: "top-left", label: "Top Left" },
+                                        { id: "center", label: "Center" }
+                                    ]
+                                    delegate: Rectangle {
+                                        width: 60
+                                        height: 24
+                                        radius: 6
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? "#bb9af7" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? "#bb9af7" : "#3b4261"
+                                        border.width: 1
+
+                                        Text {
+                                            text: modelData.label
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? "#1a1b26" : "#c0caf5"
+                                            font.pixelSize: 8
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.setEffectValue("clock_hud.position", modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Toggle Switch
+                            Rectangle {
+                                width: 44
+                                height: 22
+                                radius: 11
+                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.enabled) ? "#bb9af7" : "#24283b"
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    width: 18
+                                    height: 18
+                                    radius: 9
+                                    color: "#ffffff"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    x: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.enabled) ? 24 : 2
+                                    Behavior on x { NumberAnimation { duration: 150 } }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        let cur = root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.enabled;
+                                        root.setEffectValue("clock_hud.enabled", !cur);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Card 6: Post-Processing Filters (Scanlines, Vignette, Blur)
+                    Rectangle {
+                        width: parent.width
+                        height: 76
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            Column {
+                                width: parent.width - 240
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Text { text: "Scanlines, Vignette & Depth Blur"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Atmospheric CRT phosphor lines, edge shading, and hardware blur"; color: "#565f89"; font.pixelSize: 10 }
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 8
+
+                                Rectangle {
+                                    width: 72
+                                    height: 26
+                                    radius: 6
+                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.scanlines && root.engineConfig.effects.scanlines.enabled) ? "#7aa2f7" : "#1f2335"
+                                    border.color: "#3b4261"
+                                    border.width: 1
+
+                                    Text {
+                                        text: "Scanlines"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.scanlines && root.engineConfig.effects.scanlines.enabled) ? "#1a1b26" : "#c0caf5"
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                        anchors.centerIn: parent
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            let cur = root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.scanlines && root.engineConfig.effects.scanlines.enabled;
+                                            root.setEffectValue("scanlines.enabled", !cur);
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: 72
+                                    height: 26
+                                    radius: 6
+                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.vignette && root.engineConfig.effects.vignette.enabled) ? "#bb9af7" : "#1f2335"
+                                    border.color: "#3b4261"
+                                    border.width: 1
+
+                                    Text {
+                                        text: "Vignette"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.vignette && root.engineConfig.effects.vignette.enabled) ? "#1a1b26" : "#c0caf5"
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                        anchors.centerIn: parent
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            let cur = root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.vignette && root.engineConfig.effects.vignette.enabled;
+                                            root.setEffectValue("vignette.enabled", !cur);
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: 64
+                                    height: 26
+                                    radius: 6
+                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.blur && root.engineConfig.effects.blur.enabled) ? "#9ece6a" : "#1f2335"
+                                    border.color: "#3b4261"
+                                    border.width: 1
+
+                                    Text {
+                                        text: "Blur"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.blur && root.engineConfig.effects.blur.enabled) ? "#1a1b26" : "#c0caf5"
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                        anchors.centerIn: parent
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            let cur = root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.blur && root.engineConfig.effects.blur.enabled;
+                                            root.setEffectValue("blur.enabled", !cur);
+                                            if (!cur) root.setEffectValue("blur.radius", 5);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Card 7: Visual Display & Color Tuning
+                    Rectangle {
+                        width: parent.width
+                        height: 76
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            Column {
+                                width: parent.width - 340
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Text { text: "Brightness & Contrast Tuning"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Fine-tune wallpaper luminance, contrast, and color vibrancy"; color: "#565f89"; font.pixelSize: 10 }
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+
+                                Text { text: "Bright:"; color: "#e0af68"; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+
+                                Repeater {
+                                    model: [75, 100, 125]
+                                    delegate: Rectangle {
+                                        width: 44
+                                        height: 24
+                                        radius: 6
+                                        color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? "#e0af68" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? "#e0af68" : "#3b4261"
+                                        border.width: 1
+
+                                        Text {
+                                            text: modelData + "%"
+                                            color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? "#1a1b26" : "#c0caf5"
+                                            font.pixelSize: 8
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.setEffectValue("brightness", modelData)
+                                        }
+                                    }
+                                }
+
+                                Rectangle { width: 1; height: 18; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+
+                                Text { text: "Contrast:"; color: "#7dcfff"; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+
+                                Repeater {
+                                    model: [80, 100, 120]
+                                    delegate: Rectangle {
+                                        width: 44
+                                        height: 24
+                                        radius: 6
+                                        color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? "#7dcfff" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? "#7dcfff" : "#3b4261"
+                                        border.width: 1
+
+                                        Text {
+                                            text: modelData + "%"
+                                            color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? "#1a1b26" : "#c0caf5"
+                                            font.pixelSize: 8
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.setEffectValue("contrast", modelData)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // TAB 3: Performance & Engine Telemetry
+            Flickable {
+                visible: root.selectedTab === 3
+                anchors.top: divider.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 16
+                contentHeight: perfCol.height + 20
+                clip: true
+
+                Column {
+                    id: perfCol
+                    width: parent.width
+                    spacing: 14
+
+                    // Profile Selection
+                    Rectangle {
+                        width: parent.width
+                        height: 90
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 8
+
+                            Text { text: "Performance Profiles"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+
+                            Row {
+                                spacing: 10
+                                width: parent.width
+
+                                Repeater {
+                                    model: [
+                                        { id: "battery_saver", title: "Battery Saver", desc: "30 FPS // Minimal FX", color: "#9ece6a" },
+                                        { id: "balanced", title: "Balanced", desc: "60 FPS // Standard FX", color: "#7aa2f7" },
+                                        { id: "performance", title: "Performance", desc: "120+ FPS // Max FX", color: "#bb9af7" }
+                                    ]
+                                    delegate: Rectangle {
+                                        width: (perfCol.width - 44) / 3
+                                        height: 44
+                                        radius: 8
+                                        color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? "#24283b" : "#1f2335"
+                                        border.color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? modelData.color : "#3b4261"
+                                        border.width: (root.engineConfig && root.engineConfig.quality === modelData.id) ? 2 : 1
+
+                                        Column {
+                                            anchors.centerIn: parent
+                                            spacing: 2
+                                            Text {
+                                                text: modelData.title
+                                                color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? modelData.color : "#c0caf5"
+                                                font.pixelSize: 11
+                                                font.bold: true
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                            }
+                                            Text {
+                                                text: modelData.desc
+                                                color: "#565f89"
+                                                font.pixelSize: 9
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                root.setEffectValue("quality", modelData.id);
+                                                if (modelData.id === "battery_saver") {
+                                                    root.setEffectValue("fps", 30);
+                                                    root.setEffectValue("particles.count", 20);
+                                                } else if (modelData.id === "balanced") {
+                                                    root.setEffectValue("fps", 60);
+                                                    root.setEffectValue("particles.count", 40);
+                                                } else {
+                                                    root.setEffectValue("fps", 120);
+                                                    root.setEffectValue("particles.count", 80);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Smart Automation & Toggles
+                    Rectangle {
+                        width: parent.width
+                        height: 100
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 10
+
+                            Row {
+                                width: parent.width
+                                Item {
+                                    width: parent.width - 60
+                                    height: 20
+                                    Text { text: "Intelligent Fullscreen Pause"; color: "#c0caf5"; font.bold: true; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { text: "Automatically halts rendering when a fullscreen game or video covers the monitor"; color: "#565f89"; font.pixelSize: 10; anchors.bottom: parent.bottom }
+                                }
+
+                                Rectangle {
+                                    width: 44
+                                    height: 22
+                                    radius: 11
+                                    color: (root.engineConfig && root.engineConfig.pause_fullscreen) ? "#7aa2f7" : "#24283b"
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Rectangle {
+                                        width: 18
+                                        height: 18
+                                        radius: 9
+                                        color: "#ffffff"
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        x: (root.engineConfig && root.engineConfig.pause_fullscreen) ? 24 : 2
+                                        Behavior on x { NumberAnimation { duration: 150 } }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            let cur = root.engineConfig && root.engineConfig.pause_fullscreen;
+                                            root.setEffectValue("pause_fullscreen", !cur);
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle { width: parent.width; height: 1; color: "#24283b" }
+
+                            Row {
+                                width: parent.width
+                                Item {
+                                    width: parent.width - 60
+                                    height: 20
+                                    Text { text: "Laptop Battery Throttle"; color: "#c0caf5"; font.bold: true; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { text: "Reduces FPS and complex effects automatically when unplugged from AC power"; color: "#565f89"; font.pixelSize: 10; anchors.bottom: parent.bottom }
+                                }
+
+                                Rectangle {
+                                    width: 44
+                                    height: 22
+                                    radius: 11
+                                    color: (root.engineConfig && root.engineConfig.battery_saver) ? "#9ece6a" : "#24283b"
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Rectangle {
+                                        width: 18
+                                        height: 18
+                                        radius: 9
+                                        color: "#ffffff"
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        x: (root.engineConfig && root.engineConfig.battery_saver) ? 24 : 2
+                                        Behavior on x { NumberAnimation { duration: 150 } }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            let cur = root.engineConfig && root.engineConfig.battery_saver;
+                                            root.setEffectValue("battery_saver", !cur);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Engine Telemetry Card & Action Buttons
+                    Rectangle {
+                        width: parent.width
+                        height: 100
+                        radius: 12
+                        color: "#16161e"
+                        border.color: "#292e42"
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 14
+                            spacing: 16
+
+                            Column {
+                                width: parent.width - 320
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 4
+
+                                Text { text: "Engine Process & Monitors"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                Text {
+                                    text: "PID: " + (root.engineStatus ? root.engineStatus.pid : "--") + "  |  Monitors: " + (root.engineStatus && root.engineStatus.monitors ? root.engineStatus.monitors.join(", ") : "None")
+                                    color: "#7aa2f7"
+                                    font.pixelSize: 11
+                                }
+                                Text {
+                                    text: "Target: " + (root.engineStatus ? root.engineStatus.active : "None")
+                                    color: "#565f89"
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                    width: parent.width
+                                }
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 8
+
+                                // Reload Webview
+                                Rectangle {
+                                    width: 90
+                                    height: 34
+                                    radius: 8
+                                    color: reloadHover.containsMouse ? "#24283b" : "#1f2335"
+                                    border.color: reloadHover.containsMouse ? "#7aa2f7" : "#3b4261"
+                                    border.width: 1
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Text { text: "󰑐"; color: "#7aa2f7"; font.pixelSize: 12 }
+                                        Text { text: "Reload"; color: "#c0caf5"; font.pixelSize: 11; font.bold: true }
+                                    }
+
+                                    MouseArea {
+                                        id: reloadHover
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "reload"]);
+                                        }
+                                    }
+                                }
+
+                                // Restart Engine
+                                Rectangle {
+                                    width: 95
+                                    height: 34
+                                    radius: 8
+                                    color: restartHover.containsMouse ? "#24283b" : "#1f2335"
+                                    border.color: restartHover.containsMouse ? "#bb9af7" : "#3b4261"
+                                    border.width: 1
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Text { text: "󰜉"; color: "#bb9af7"; font.pixelSize: 12 }
+                                        Text { text: "Restart"; color: "#c0caf5"; font.pixelSize: 11; font.bold: true }
+                                    }
+
+                                    MouseArea {
+                                        id: restartHover
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "restart"]);
+                                            refreshConfigTimer.running = true;
+                                        }
+                                    }
+                                }
+
+                                // Random Wallpaper
+                                Rectangle {
+                                    width: 95
+                                    height: 34
+                                    radius: 8
+                                    color: randHover.containsMouse ? "#24283b" : "#1f2335"
+                                    border.color: randHover.containsMouse ? "#9ece6a" : "#3b4261"
+                                    border.width: 1
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Text { text: "󰒝"; color: "#9ece6a"; font.pixelSize: 12 }
+                                        Text { text: "Random"; color: "#c0caf5"; font.pixelSize: 11; font.bold: true }
+                                    }
+
+                                    MouseArea {
+                                        id: randHover
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "random"]);
+                                            refreshConfigTimer.running = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // TAB 4: Canvas Colors
+            Flickable {
+                visible: root.selectedTab === 4
+                anchors.top: divider.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 16
+                contentHeight: colorGrid.height
+                clip: true
 
                 Grid {
                     id: colorGrid
@@ -2800,7 +4076,7 @@ Item {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper.sh", "color", modelData.hex])
+                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "color", modelData.hex])
                                     root.activeWallpaper = "color:" + modelData.hex
                                 }
                             }

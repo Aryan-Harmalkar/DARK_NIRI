@@ -1,0 +1,9 @@
+{
+  "name": "Constellation Particles",
+  "id": "particles",
+  "version": "1.0",
+  "author": "DARK_NIRI",
+  "description": "Interactive glowing constellation nodes with dynamic cursor physics.",
+  "entry": "index.html",
+  "type": "theme"
+}

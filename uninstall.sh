@@ -29,7 +29,9 @@ uninstall_app() {
 if command -v systemctl >/dev/null 2>&1; then
     systemctl --user disable --now qs-net-tracker.timer 2>/dev/null
     systemctl --user disable --now qs-net-tracker.service 2>/dev/null
+    systemctl --user disable --now quickshell-wallpaper.service 2>/dev/null
     rm -f "$HOME/.config/systemd/user/qs-net-tracker.service" "$HOME/.config/systemd/user/qs-net-tracker.timer"
+    rm -f "$HOME/.config/systemd/user/quickshell-wallpaper.service"
     systemctl --user daemon-reload 2>/dev/null
 fi
 

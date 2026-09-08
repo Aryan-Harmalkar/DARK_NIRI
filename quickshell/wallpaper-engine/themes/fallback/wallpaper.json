@@ -1,0 +1,9 @@
+{
+  "name": "Tokyo Dark Canvas",
+  "id": "fallback",
+  "version": "1.0",
+  "author": "DARK_NIRI",
+  "description": "Ultra-lightweight sleek gradient canvas.",
+  "entry": "index.html",
+  "type": "theme"
+}

@@ -35,18 +35,20 @@ Clicking the **Gear icon** in the top-right corner opens the Control Center flyo
 - 🔊 **Mute Speaker / Mic**: One-click mute toggles.
 - 📹 **Screen Recording**: One-click to start recording your screen.
 - 🔔 **Notifications**: Open the notification drawer.
-- 🖼️ **Wallpaper Gallery**: Browse and pick wallpapers.
+- 🖼️ **Web Wallpaper Studio**: Browse themes, wallpapers, and customize live effects.
 - ⚡ **Power Profile**: Click to cycle between **Power Saver** (battery), **Balanced**, and **Performance**.
 
 ### Sliders
 - **Volume Slider**: Drag left or right to change speaker volume.
 - **Brightness Slider**: Drag left or right to dim or brighten screen.
 
-### Wallpaper Gallery
-Click the **Gallery button** in the Control Center to browse:
-1. **Static Wallpapers**: Click any image to set it.
-2. **Live Video Wallpapers**: Animated backgrounds powered by `mpvpaper`.
-3. **Canvas Colors**: Minimal solid color backgrounds.
+### Web Wallpaper Studio
+Click the **Web Wallpaper Studio** banner in the Control Center to access:
+1. **Web Themes**: Interactive HTML5/WebGL animated themes (`Cyber City`, `Aurora`, `Matrix`, `Particles`, `Waves`).
+2. **Wallpapers**: Local pictures and live animated video wallpapers from `~/Pictures/Wallpapers`.
+3. **Effects & FX Customizer**: Add, remove, and tune particles, mouse parallax, solar lighting, rain/snow, HUD clock, scanlines, and vignette in real time.
+4. **Performance & Engine**: Battery saver, balanced, and performance profiles with intelligent fullscreen auto-pausing.
+5. **Canvas Colors**: Solid Tokyo Night backdrops.
 
 ### Wi-Fi Connecting
 1. Click the Wi-Fi card in the Control Center (or the Wi-Fi icon).

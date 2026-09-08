@@ -1,0 +1,11 @@
+{
+  "name": "Cyber City",
+  "version": "1.0",
+  "author": "Local",
+  "entry": "index.html",
+  "description": "Animated cyberpunk metropolis with neon skyline, flying vehicles, and HUD telemetry",
+  "fps": 60,
+  "interactive": true,
+  "audioReactive": true,
+  "multiMonitor": true
+}

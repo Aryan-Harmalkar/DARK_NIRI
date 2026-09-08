@@ -4,14 +4,20 @@ Here are simple instructions for the most common customizations.
 
 ---
 
-## 1. How to Add Your Own Wallpapers
+## 1. How to Change Wallpapers & Customize Effects
 
-1. Place your wallpaper images (`.png`, `.jpg`, `.webp`) or video wallpapers (`.mp4`, `.webm`) into:
-   ```text
-   ~/Pictures/Wallpapers/
-   ```
-2. Click the **Gear icon** on the top bar -> Open **Wallpaper Gallery**.
-3. Your new wallpapers will appear in the gallery automatically with preview thumbnails! Click any image to apply.
+1. **Web Themes & Live Effects Studio**:
+   - Click the **Gear icon** on the top bar -> Open **Web Wallpaper Studio**.
+   - **Web Themes tab**: Choose animated cyberpunk city, aurora borealis, digital matrix rain, constellation particles, or harmonic waves.
+   - **Effects & FX tab**: Add, remove, or customize live floating particles (embers, dust, nodes), interactive mouse parallax depth, time-of-day lighting, realistic rain/snow weather, cyber HUD clock, CRT scanlines, vignette, and hardware blur.
+   - **Performance tab**: Choose between Battery Saver (30 FPS), Balanced (60 FPS), and Performance (120+ FPS) modes with automatic fullscreen detection.
+
+2. **Add Your Own Images or Videos**:
+   - Place your wallpaper images (`.png`, `.jpg`, `.webp`) or animated videos (`.mp4`, `.webm`) into:
+     ```text
+     ~/Pictures/Wallpapers/
+     ```
+   - Open **Web Wallpaper Studio** -> Click the **Wallpapers** tab. Click any picture or video to apply it instantly with live effects!
 
 ---
 

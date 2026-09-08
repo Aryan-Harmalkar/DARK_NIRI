@@ -1,0 +1,15 @@
+[Unit]
+Description=Quickshell HTML/Web Wallpaper Engine for Niri
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=forking
+ExecStart=%h/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl start
+ExecStop=%h/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl stop
+ExecReload=%h/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl reload
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=graphical-session.target

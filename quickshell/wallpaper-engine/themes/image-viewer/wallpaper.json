@@ -1,0 +1,10 @@
+{
+  "name": "Image Viewer & Effects",
+  "id": "image-viewer",
+  "version": "2.0",
+  "author": "DARK_NIRI",
+  "description": "High-performance modular wallpaper renderer with parallax, particles, time-of-day lighting, weather, and cyber HUD.",
+  "entry": "index.html",
+  "type": "renderer",
+  "hasEffects": true
+}

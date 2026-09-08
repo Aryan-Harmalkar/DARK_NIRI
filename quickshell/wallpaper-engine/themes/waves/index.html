@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin:0; padding:0; overflow:hidden; }
+    body { background: #1a1b26; width: 100vw; height: 100vh; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const c = document.getElementById('c');
+    const ctx = c.getContext('2d');
+    let w, h;
+    function resize() {
+      w = c.width = window.innerWidth;
+      h = c.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let step = 0;
+    const lines = [
+      { color: '#7aa2f7', speed: 0.02, freq: 0.008, amp: 70 },
+      { color: '#bb9af7', speed: 0.015, freq: 0.006, amp: 85 },
+      { color: '#7dcfff', speed: 0.025, freq: 0.01, amp: 60 },
+      { color: '#f7768e', speed: 0.012, freq: 0.005, amp: 95 }
+    ];
+
+    function draw() {
+      ctx.fillStyle = '#1a1b26';
+      ctx.fillRect(0, 0, w, h);
+      step++;
+
+      lines.forEach((l, idx) => {
+        ctx.beginPath();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = l.color;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = l.color;
+
+        const centerY = h * 0.5 + Math.sin(step * 0.01 + idx) * 40;
+        for (let x = 0; x <= w; x += 5) {
+          const y = centerY + Math.sin(x * l.freq + step * l.speed) * l.amp + Math.cos(x * 0.003 - step * 0.01) * 30;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>

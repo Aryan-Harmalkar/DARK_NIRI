@@ -1,0 +1,54 @@
+{
+  "active": "aurora",
+  "active_type": "theme",
+  "mode": "global",
+  "monitors": {},
+  "fps": 30,
+  "quality": "balanced",
+  "battery_saver": true,
+  "pause_fullscreen": true,
+  "effects": {
+    "particles": {
+      "enabled": true,
+      "style": "dust",
+      "count": 40,
+      "speed": 1.0,
+      "color": "#7aa2f7"
+    },
+    "parallax": {
+      "enabled": true,
+      "depth": 4
+    },
+    "time_lighting": {
+      "enabled": true,
+      "mode": "manual",
+      "preset": "night"
+    },
+    "weather": {
+      "enabled": true,
+      "type": "snow",
+      "intensity": "medium"
+    },
+    "clock_hud": {
+      "enabled": true,
+      "style": "cyber",
+      "position": "center",
+      "format24h": true,
+      "showSeconds": true
+    },
+    "scanlines": {
+      "enabled": false,
+      "opacity": 0.25
+    },
+    "vignette": {
+      "enabled": false,
+      "opacity": 0.35
+    },
+    "blur": {
+      "enabled": false,
+      "radius": 5
+    },
+    "brightness": 100,
+    "contrast": 100
+  }
+}

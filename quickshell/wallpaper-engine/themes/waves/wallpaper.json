@@ -1,0 +1,9 @@
+{
+  "name": "Harmonic Sine Waves",
+  "id": "waves",
+  "version": "1.0",
+  "author": "DARK_NIRI",
+  "description": "Smooth harmonic undulating waves with gradient color blending.",
+  "entry": "index.html",
+  "type": "theme"
+}

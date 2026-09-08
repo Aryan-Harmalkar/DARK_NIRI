@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+# wallpaperctl - CLI Controller for HTML/Web Wallpaper Engine
+SOCKET_PATH="/tmp/qs-wallpaper-${UID}.sock"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENGINE_PY="$DIR/engine.py"
+CONFIG_FILE="$DIR/config.json"
+STATE_FILE="$HOME/.config/niri/current_wallpaper"
+export GSK_RENDERER="gl"
+
+send_ipc() {
+    local payload="$1"
+    if [ -S "$SOCKET_PATH" ]; then
+        python3 -c '
+import socket, sys
+try:
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.settimeout(3.0)
+    s.connect(sys.argv[1])
+    s.sendall((sys.argv[2] + "\n").encode("utf-8"))
+    res = s.recv(65536).decode("utf-8")
+    print(res.strip())
+    s.close()
+except Exception:
+    sys.exit(1)
+' "$SOCKET_PATH" "$payload"
+        return $?
+    fi
+    return 1
+}
+
+is_running() {
+    if [ -S "$SOCKET_PATH" ]; then
+        send_ipc '{"cmd": "status"}' >/dev/null 2>&1
+        return $?
+    fi
+    return 1
+}
+
+start_engine() {
+    if is_running; then
+        return 0
+    fi
+    rm -f "$SOCKET_PATH"
+    pkill -f "python3.*quickshell/wallpaper-engine/engine.py" 2>/dev/null || true
+    nohup /usr/bin/python3 "$ENGINE_PY" >/dev/null 2>&1 &
+    disown
+    # Wait for socket up to 3 seconds
+    for i in {1..30}; do
+        if [ -S "$SOCKET_PATH" ] && is_running; then
+            return 0
+        fi
+        sleep 0.1
+    done
+    return 1
+}
+
+stop_engine() {
+    if is_running; then
+        send_ipc '{"cmd": "stop"}' >/dev/null 2>&1
+        sleep 0.2
+    fi
+    pkill -f "python3.*quickshell/wallpaper-engine/engine.py" 2>/dev/null || true
+    rm -f "$SOCKET_PATH"
+}
+
+case "$1" in
+    start)
+        if start_engine; then
+            echo "Wallpaper Engine started."
+        else
+            echo "Failed to start Wallpaper Engine."
+            exit 1
+        fi
+        ;;
+    stop)
+        stop_engine
+        echo "Wallpaper Engine stopped."
+        ;;
+    restart)
+        stop_engine
+        sleep 0.3
+        start_engine
+        echo "Wallpaper Engine restarted."
+        ;;
+    set)
+        WALL="$2"
+        MONITOR="$3"
+        if [ -z "$WALL" ]; then
+            echo "Usage: wallpaperctl set <path_or_theme> [monitor]"
+            exit 1
+        fi
+        start_engine
+        if [ -n "$MONITOR" ]; then
+            send_ipc "{\"cmd\": \"set\", \"target\": \"$WALL\", \"monitor\": \"$MONITOR\"}"
+        else
+            send_ipc "{\"cmd\": \"set\", \"target\": \"$WALL\"}"
+        fi
+        ;;
+    color)
+        COLOR="$2"
+        MONITOR="$3"
+        if [ -z "$COLOR" ]; then
+            echo "Usage: wallpaperctl color <#hex> [monitor]"
+            exit 1
+        fi
+        start_engine
+        if [ -n "$MONITOR" ]; then
+            send_ipc "{\"cmd\": \"color\", \"hex\": \"$COLOR\", \"monitor\": \"$MONITOR\"}"
+        else
+            send_ipc "{\"cmd\": \"color\", \"hex\": \"$COLOR\"}"
+        fi
+        ;;
+    set-effect)
+        KEY="$2"
+        VAL="$3"
+        if [ -z "$KEY" ]; then
+            echo "Usage: wallpaperctl set-effect <key> <value>"
+            exit 1
+        fi
+        send_ipc "{\"cmd\": \"set_effect\", \"key\": \"$KEY\", \"value\": \"$VAL\"}"
+        ;;
+    set-config)
+        CFG="$2"
+        if [ -z "$CFG" ]; then
+            echo "Usage: wallpaperctl set-config <json_string>"
+            exit 1
+        fi
+        send_ipc "{\"cmd\": \"set_config\", \"config\": $CFG}"
+        ;;
+    get-config)
+        if is_running; then
+            send_ipc '{"cmd": "get_config"}'
+        elif [ -f "$CONFIG_FILE" ]; then
+            cat "$CONFIG_FILE"
+        else
+            echo "{}"
+        fi
+        ;;
+    get)
+        if is_running; then
+            send_ipc '{"cmd": "get"}'
+        elif [ -f "$STATE_FILE" ]; then
+            cat "$STATE_FILE"
+        elif [ -f "$CONFIG_FILE" ]; then
+            python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('active', ''))"
+        fi
+        ;;
+    list)
+        if is_running; then
+            send_ipc '{"cmd": "list"}'
+        else
+            python3 -c '
+import os, sys, glob, json
+themes_dir = "'"$DIR"'/themes"
+wall_dir = os.path.expanduser("~/Pictures/Wallpapers")
+items = []
+if os.path.exists(themes_dir):
+    for t in sorted(os.listdir(themes_dir)):
+        if os.path.isdir(os.path.join(themes_dir, t)) and t != "image-viewer":
+            items.append({"name": t.replace("-", " ").title(), "path": t, "thumb": "", "type": "theme"})
+if os.path.exists(wall_dir):
+    for ext in ("*.jpg", "*.jpeg", "*.png", "*.webp", "*.mp4", "*.webm"):
+        for p in sorted(glob.glob(os.path.join(wall_dir, ext))):
+            name = os.path.basename(p)
+            is_vid = name.lower().endswith((".mp4", ".webm", ".mkv"))
+            items.append({"name": name, "path": p, "thumb": p, "type": "video" if is_vid else "image"})
+print(json.dumps(items))
+'
+        fi
+        ;;
+    random)
+        start_engine
+        LIST_JSON=$(send_ipc '{"cmd": "list"}')
+        RAND_TARGET=$(python3 -c '
+import sys, json, random
+try:
+    items = json.loads(sys.argv[1])
+    if items:
+        chosen = random.choice(items)
+        print(chosen.get("path", ""))
+except:
+    pass
+' "$LIST_JSON")
+        if [ -n "$RAND_TARGET" ]; then
+            send_ipc "{\"cmd\": \"set\", \"target\": \"$RAND_TARGET\"}"
+            echo "Applied random wallpaper: $RAND_TARGET"
+        fi
+        ;;
+    monitors)
+        send_ipc '{"cmd": "monitors"}'
+        ;;
+    status)
+        if is_running; then
+            send_ipc '{"cmd": "status"}'
+        else
+            echo '{"running": false}'
+        fi
+        ;;
+    reload)
+        send_ipc '{"cmd": "reload"}'
+        ;;
+    init)
+        start_engine
+        CURR=$(cat "$STATE_FILE" 2>/dev/null)
+        if [ -n "$CURR" ]; then
+            "$0" set "$CURR" >/dev/null 2>&1
+        fi
+        ;;
+    *)
+        echo "Usage: wallpaperctl {start|stop|restart|set <target> [monitor]|color <hex>|set-effect <key> <val>|set-config <json>|get-config|get|list|random|monitors|status|reload|init}"
+        exit 1
+        ;;
+esac

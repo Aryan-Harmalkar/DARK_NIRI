@@ -34,7 +34,7 @@ sequenceDiagram
     participant DBus as D-Bus & Systemd
     participant QS as QuickShell (qs)
     participant Mako as Mako Daemon
-    participant Wall as wallpaper.sh
+    participant Wall as wallpaperctl (Web Engine)
     participant Clip as cliphist
 
     DM->>Niri: Launch niri-session
@@ -43,7 +43,7 @@ sequenceDiagram
     Startup->>DBus: dbus-update-activation-environment & systemctl import
     Startup->>Mako: killall & start mako -c config
     Startup->>QS: killall & start qs -d -p shell.qml
-    Startup->>Wall: wallpaper.sh init (Restore active background)
+    Startup->>Wall: wallpaperctl init (Launch HTML/Web Layer-Shell Engine)
     Startup->>Clip: wl-paste --watch cliphist store
     QS->>QS: Initialize 12 QML Components & Timers
 ```
