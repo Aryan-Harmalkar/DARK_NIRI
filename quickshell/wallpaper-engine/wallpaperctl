@@ -10,20 +10,13 @@ export GSK_RENDERER="gl"
 send_ipc() {
     local payload="$1"
     if [ -S "$SOCKET_PATH" ]; then
-        python3 -c '
-import socket, sys
-try:
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(3.0)
-    s.connect(sys.argv[1])
-    s.sendall((sys.argv[2] + "\n").encode("utf-8"))
-    res = s.recv(65536).decode("utf-8")
-    print(res.strip())
-    s.close()
-except Exception:
-    sys.exit(1)
-' "$SOCKET_PATH" "$payload"
-        return $?
+        if [ -x "$DIR/wp-ipc" ]; then
+            "$DIR/wp-ipc" send "$SOCKET_PATH" "$payload"
+            return $?
+        elif command -v wp-ipc >/dev/null 2>&1; then
+            wp-ipc send "$SOCKET_PATH" "$payload"
+            return $?
+        fi
     fi
     return 1
 }
@@ -142,45 +135,20 @@ case "$1" in
         elif [ -f "$STATE_FILE" ]; then
             cat "$STATE_FILE"
         elif [ -f "$CONFIG_FILE" ]; then
-            python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('active', ''))"
+            "$DIR/wp-ipc" get-active "$CONFIG_FILE" 2>/dev/null
         fi
         ;;
     list)
         if is_running; then
             send_ipc '{"cmd": "list"}'
         else
-            python3 -c '
-import os, sys, glob, json
-themes_dir = "'"$DIR"'/themes"
-wall_dir = os.path.expanduser("~/Pictures/Wallpapers")
-items = []
-if os.path.exists(themes_dir):
-    for t in sorted(os.listdir(themes_dir)):
-        if os.path.isdir(os.path.join(themes_dir, t)) and t != "image-viewer":
-            items.append({"name": t.replace("-", " ").title(), "path": t, "thumb": "", "type": "theme"})
-if os.path.exists(wall_dir):
-    for ext in ("*.jpg", "*.jpeg", "*.png", "*.webp", "*.mp4", "*.webm"):
-        for p in sorted(glob.glob(os.path.join(wall_dir, ext))):
-            name = os.path.basename(p)
-            is_vid = name.lower().endswith((".mp4", ".webm", ".mkv"))
-            items.append({"name": name, "path": p, "thumb": p, "type": "video" if is_vid else "image"})
-print(json.dumps(items))
-'
+            "$DIR/wp-ipc" list "$DIR/themes" "$HOME/Pictures/Wallpapers"
         fi
         ;;
     random)
         start_engine
         LIST_JSON=$(send_ipc '{"cmd": "list"}')
-        RAND_TARGET=$(python3 -c '
-import sys, json, random
-try:
-    items = json.loads(sys.argv[1])
-    if items:
-        chosen = random.choice(items)
-        print(chosen.get("path", ""))
-except:
-    pass
-' "$LIST_JSON")
+        RAND_TARGET=$("$DIR/wp-ipc" random "$LIST_JSON" 2>/dev/null)
         if [ -n "$RAND_TARGET" ]; then
             send_ipc "{\"cmd\": \"set\", \"target\": \"$RAND_TARGET\"}"
             echo "Applied random wallpaper: $RAND_TARGET"

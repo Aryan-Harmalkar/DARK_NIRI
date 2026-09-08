@@ -29,15 +29,23 @@ DARK_NIRI/
 │       ├── common.rs               # Zero-allocation sysfs and byte formatting utilities
 │       └── bin/
 │           ├── net_tracker.rs      # Sub-millisecond network usage telemetry binary
-│           └── daily_network_logger.rs # Daily bandwidth consumption & markdown reporter
+│           ├── daily_network_logger.rs # Daily bandwidth consumption & markdown reporter
+│           ├── wifi.rs             # High-performance Wi-Fi manager & WPS monitor
+│           ├── bluetooth.rs        # Native Bluetooth discovery & profile manager
+│           ├── notifications.rs    # Mako notification history & dismissal backend
+│           └── wallpaper_ipc.rs    # UNIX domain socket IPC client & theme scanner
 ├── quickshell/
-│   ├── net-tracker                 # Compiled native Rust network telemetry binary
-│   ├── daily-network-logger        # Compiled native Rust daily bandwidth logger
+│   ├── net-tracker                 # Native Rust network telemetry binary
+│   ├── daily-network-logger        # Native Rust daily bandwidth logger
+│   ├── wifi                        # Native Rust Wi-Fi controller binary
+│   ├── wifi.sh                     # Symlink to native wifi binary
+│   ├── bluetooth                   # Native Rust Bluetooth controller binary
+│   ├── bluetooth.sh                # Symlink to native bluetooth binary
+│   ├── notifications               # Native Rust notifications controller binary
+│   ├── notifications.sh            # Symlink to native notifications binary
 │   ├── shell.qml                   # Main QuickShell status bar window definition
 │   ├── test.qml                    # Development/testing QML scratchpad
-│   ├── bluetooth.sh                # Bluetooth discovery & profile backend (Python)
 │   ├── media.sh                    # MPRIS media metadata extraction script (Bash)
-│   ├── notifications.sh            # Notification history & dismissal backend (Python)
 │   ├── powerprofile.sh             # Power profile switcher & cycler (Bash)
 │   ├── reminder.sh                 # Rofi-based timed reminder scheduler (Bash)
 │   ├── screencast.sh               # Screen recording controller (wf-recorder) (Bash)
@@ -46,11 +54,11 @@ DARK_NIRI/
 │   ├── wallpaper.sh                # Wallpaper compatibility bridge delegator (Bash)
 │   ├── wallpaper-engine/           # Modular HTML/Web Wallpaper Engine subsystem
 │   │   ├── engine.py               # Core GTK4 Layer Shell + WebKit6 background engine
-│   │   ├── wallpaperctl            # Engine CLI controller and IPC client
+│   │   ├── wallpaperctl            # Engine CLI controller (powered by native wp-ipc)
+│   │   ├── wp-ipc                  # Native Rust IPC client & theme scanner
 │   │   ├── config.json             # Persistent engine & effect configuration
 │   │   ├── quickshell-wallpaper.service # Systemd user service unit
 │   │   └── themes/                 # Self-contained web themes (cyber-city, aurora, etc.)
-│   ├── wifi.sh                     # Wi-Fi network manager & WPS monitor (Python)
 │   └── components/                 # Reusable QML widgets & control center modules
 │       ├── Audio.qml               # Top bar audio volume & mute indicator
 │       ├── Battery.qml             # Top bar battery percentage & charging icon

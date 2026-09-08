@@ -44,16 +44,31 @@ deploy_app "fuzzel"
 deploy_app "quickshell"
 deploy_app "mako"
 
-# Build and ensure permissions for Rust performance telemetry daemons
+# Build and ensure permissions for Rust performance tools
 if [ -d "$SOURCE_DIR/dark-tools-rs" ] && command -v cargo >/dev/null 2>&1; then
-    if [ ! -f "$SOURCE_DIR/quickshell/net-tracker" ] || [ ! -f "$SOURCE_DIR/quickshell/daily-network-logger" ]; then
-        echo "🦀 Building Rust performance tools (net-tracker & daily-network-logger)..."
+    if [ ! -f "$SOURCE_DIR/quickshell/net-tracker" ] || [ ! -f "$SOURCE_DIR/quickshell/wifi" ]; then
+        echo "🦀 Building Rust performance tools..."
         (cd "$SOURCE_DIR/dark-tools-rs" && cargo build --release && \
          cp target/release/net-tracker "$SOURCE_DIR/quickshell/" && \
-         cp target/release/daily-network-logger "$SOURCE_DIR/quickshell/")
+         cp target/release/daily-network-logger "$SOURCE_DIR/quickshell/" && \
+         cp target/release/wifi "$SOURCE_DIR/quickshell/" && \
+         cp target/release/bluetooth "$SOURCE_DIR/quickshell/" && \
+         cp target/release/notifications "$SOURCE_DIR/quickshell/" && \
+         cp target/release/wp-ipc "$SOURCE_DIR/quickshell/wallpaper-engine/")
     fi
 fi
-chmod +x "$SOURCE_DIR/quickshell/net-tracker" "$SOURCE_DIR/quickshell/daily-network-logger" 2>/dev/null || true
+chmod +x "$SOURCE_DIR/quickshell/net-tracker" \
+         "$SOURCE_DIR/quickshell/daily-network-logger" \
+         "$SOURCE_DIR/quickshell/wifi" \
+         "$SOURCE_DIR/quickshell/bluetooth" \
+         "$SOURCE_DIR/quickshell/notifications" \
+         "$SOURCE_DIR/quickshell/wallpaper-engine/wp-ipc" 2>/dev/null || true
+
+# Ensure compatibility symlinks exist
+(cd "$SOURCE_DIR/quickshell" && \
+ [ -f wifi ] && ln -sf wifi wifi.sh; \
+ [ -f bluetooth ] && ln -sf bluetooth bluetooth.sh; \
+ [ -f notifications ] && ln -sf notifications notifications.sh)
 
 # Deploy background network usage tracker systemd service
 if command -v systemctl >/dev/null 2>&1; then

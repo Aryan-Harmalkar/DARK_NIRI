@@ -142,22 +142,13 @@ fn trigger_daily_logger() {
             .ok()
             .and_then(|p| p.parent().map(|dir| dir.join("daily-network-logger")))
             .unwrap_or_else(|| PathBuf::from("daily-network-logger")),
-        // 3. Fallback to python script if binary not present yet
-        PathBuf::from(&home).join("DARK_NIRI/quickshell/daily-network-logger.py"),
     ];
 
     for candidate in &candidates {
         if candidate.exists() {
-            if candidate.extension().and_then(|e| e.to_str()) == Some("py") {
-                let _ = Command::new("python3")
-                    .arg(candidate)
-                    .arg("--update")
-                    .spawn();
-            } else {
-                let _ = Command::new(candidate)
-                    .arg("--update")
-                    .spawn();
-            }
+            let _ = Command::new(candidate)
+                .arg("--update")
+                .spawn();
             break;
         }
     }
