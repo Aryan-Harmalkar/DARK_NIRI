@@ -44,6 +44,17 @@ deploy_app "fuzzel"
 deploy_app "quickshell"
 deploy_app "mako"
 
+# Build and ensure permissions for Rust performance telemetry daemons
+if [ -d "$SOURCE_DIR/dark-tools-rs" ] && command -v cargo >/dev/null 2>&1; then
+    if [ ! -f "$SOURCE_DIR/quickshell/net-tracker" ] || [ ! -f "$SOURCE_DIR/quickshell/daily-network-logger" ]; then
+        echo "🦀 Building Rust performance tools (net-tracker & daily-network-logger)..."
+        (cd "$SOURCE_DIR/dark-tools-rs" && cargo build --release && \
+         cp target/release/net-tracker "$SOURCE_DIR/quickshell/" && \
+         cp target/release/daily-network-logger "$SOURCE_DIR/quickshell/")
+    fi
+fi
+chmod +x "$SOURCE_DIR/quickshell/net-tracker" "$SOURCE_DIR/quickshell/daily-network-logger" 2>/dev/null || true
+
 # Deploy background network usage tracker systemd service
 if command -v systemctl >/dev/null 2>&1; then
     echo "⚙️  Setting up background network usage tracker..."
@@ -57,8 +68,8 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 %h/DARK_NIRI/quickshell/net-tracker.py --update
-ExecStop=/usr/bin/python3 %h/DARK_NIRI/quickshell/net-tracker.py --update
+ExecStart=%h/DARK_NIRI/quickshell/net-tracker --update
+ExecStop=%h/DARK_NIRI/quickshell/net-tracker --update
 RemainAfterExit=yes
 
 [Install]

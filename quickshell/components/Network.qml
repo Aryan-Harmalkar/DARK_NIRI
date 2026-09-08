@@ -26,7 +26,7 @@ Item {
 
     Process {
         id: fetchProcess
-        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/net-tracker.py", "--type"]
+        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/net-tracker", "--type"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {

@@ -43,8 +43,10 @@ This document details the telemetry collection pipeline implemented by `quickshe
 
 
 ### 2.5 Persistent Daily & Monthly Data Usage Tracking (`DATA_DAY`, `DATA_MONTH`)
-- **Mechanism**: `sysinfo.sh` tracks persistent cumulative network consumption across reboots using `/proc/sys/kernel/random/boot_id` and `/proc/net/dev`.
-- **Storage Location**: `~/.local/share/quickshell/network_usage.json`.
+- **Mechanism**: High-performance compiled Rust utility (`dark-tools-rs/net-tracker`) with sub-millisecond execution (~1.3ms, < 2MB RAM). Tracks persistent cumulative network consumption across reboots using `/proc/sys/kernel/random/boot_id` and `/sys/class/net/*` statistics.
+- **Background Daemon**: Systemd user service `qs-net-tracker.service` and timer `qs-net-tracker.timer` periodic ticker.
+- **Daily Markdown Logger**: Synchronously triggers `daily-network-logger` to record detailed daily bandwidth tables in `~/Data Consumption/YYYY-MM.md`.
+- **Storage Location**: `~/.local/share/quickshell/network_usage.json` and `network_logger_state.json`.
 - **Calculations**:
   - Automatically resets daily metrics at midnight (`%Y-%m-%d`).
   - Automatically resets monthly metrics on the 1st of each month (`%Y-%m`).

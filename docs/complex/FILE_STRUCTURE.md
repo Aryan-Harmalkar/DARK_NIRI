@@ -23,7 +23,16 @@ DARK_NIRI/
 │   ├── osd.sh                      # On-Screen Display (OSD) notification helper
 │   ├── startup.sh                  # Niri session startup and autostart script
 │   └── current_wallpaper           # Active wallpaper path placeholder
+├── dark-tools-rs/                  # High-performance native Rust desktop tools & daemons
+│   ├── Cargo.toml                  # Rust workspace package configuration
+│   └── src/
+│       ├── common.rs               # Zero-allocation sysfs and byte formatting utilities
+│       └── bin/
+│           ├── net_tracker.rs      # Sub-millisecond network usage telemetry binary
+│           └── daily_network_logger.rs # Daily bandwidth consumption & markdown reporter
 ├── quickshell/
+│   ├── net-tracker                 # Compiled native Rust network telemetry binary
+│   ├── daily-network-logger        # Compiled native Rust daily bandwidth logger
 │   ├── shell.qml                   # Main QuickShell status bar window definition
 │   ├── test.qml                    # Development/testing QML scratchpad
 │   ├── bluetooth.sh                # Bluetooth discovery & profile backend (Python)

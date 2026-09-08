@@ -91,7 +91,11 @@ fi
 echo "$NOW $CPU_TOTAL $CPU_IDLE $NET_RX $NET_TX" > "$STATE_FILE"
 
 # 3b. Daily & Monthly Data Usage Tracking (Persistent across boots, physical WAN/LAN/USB tethering only)
-USAGE_OUT=$("$HOME/DARK_NIRI/quickshell/net-tracker.py" --get 2>/dev/null)
+if [ -x "$HOME/DARK_NIRI/quickshell/net-tracker" ]; then
+    USAGE_OUT=$("$HOME/DARK_NIRI/quickshell/net-tracker" --get 2>/dev/null)
+else
+    USAGE_OUT=$("$HOME/DARK_NIRI/quickshell/net-tracker.py" --get 2>/dev/null)
+fi
 DATA_DAY=$(echo "$USAGE_OUT" | awk -F'|' '{print $1}')
 DATA_MONTH=$(echo "$USAGE_OUT" | awk -F'|' '{print $2}')
 [ -z "$DATA_DAY" ] && DATA_DAY="0 B"

@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+import os, sys
+# Delegate immediately to high-performance native Rust binary if present
+_rust_bin = os.path.join(os.path.dirname(os.path.abspath(__file__)), "net-tracker")
+if os.path.isfile(_rust_bin) and os.access(_rust_bin, os.X_OK):
+    os.execv(_rust_bin, [_rust_bin] + sys.argv[1:])
+
 import sys
 import os
 import glob
