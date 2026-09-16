@@ -18,10 +18,14 @@ This document documents `quickshell/components/Settings.qml` (3,050 lines), the 
    - Notification Drawer Toggle
    - Wallpaper Gallery Modal Toggle
    - Power Profile Cycler
-4. **Interactive Sliders**:
+4. **1-Click Feature Banners & Selectors**:
+   - **System Themes Studio Banner**: Opens dedicated 7-preset system theme switcher (`btn => themes`).
+   - **Web Wallpaper Studio Banner**: Opens HTML5/WebGL interactive canvas and wallpaper manager.
+   - **1-Click Bar Style Selector**: Dynamic switch between 4 status bar styles (`Floating`, `Islands`, `Normal`, `Compact`) with live morphing animations and persistent state.
+5. **Interactive Sliders**:
    - Master Volume Slider (`wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ <val>`)
    - Display Brightness Slider (`brightnessctl set <val>%`)
-5. **Integrated Modal Dialogs & Overlays**:
+6. **Integrated Modal Dialogs & Overlays**:
    - **Wi-Fi Manager Modal**: Full network scan, signal quality, security type, WPS connect, and network card selection.
    - **Wi-Fi Authentication Overlay (`wifiAuthModalWindow`)**: Dedicated top-level `PanelWindow` on `WlrLayer.Overlay` with `WlrKeyboardFocus.Exclusive` for in-GUI keyboard input, password reveal toggle, and Rofi fallback.
    - **Bluetooth Manager Modal**: Device scan, pairing, trust, connection, audio profile switch (A2DP / HSP).
@@ -29,7 +33,7 @@ This document documents `quickshell/components/Settings.qml` (3,050 lines), the 
    - **Notification Center**: Interactive notifications feed with per-item dismissal and clear all.
 6. **Session Action Bar**:
    - Lock Screen: `swaylock -f || niri msg action power-off-monitors`
-   - Reload Desktop Shell: `killall qs; qs -d -p $HOME/DARK_NIRI/quickshell/shell.qml &`
+   - Reload Desktop Shell: `$HOME/DARK_NIRI/quickshell/reload-shell.sh`
    - Log Out: `niri msg action quit`
    - Reboot: `systemctl reboot`
    - Shutdown: `quickshell/shutdown.sh` (or sudo password prompt)

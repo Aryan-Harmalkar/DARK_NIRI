@@ -8,16 +8,23 @@ This document provides a complete technical analysis of the **QuickShell** deskt
 
 [QuickShell](https://github.com/outfoxxed/quickshell) is a native desktop shell engine based on QtQuick and QML. It bridges the Wayland `wlr-layer-shell` protocol directly to Linux CLI tools and D-Bus services.
 
-### Core Window Definition (`quickshell/shell.qml`)
+## 1. Architectural Overview
+
+[QuickShell](https://github.com/outfoxxed/quickshell) is a native desktop shell engine based on QtQuick and QML. It bridges the Wayland `wlr-layer-shell` protocol directly to Linux CLI tools and D-Bus services.
+
+### Multi-Style Dynamic Status Bar (`quickshell/shell.qml`)
 - **Type**: `PanelWindow`
 - **Anchor**: Top of screen (`anchors { top: true; left: true; right: true; }`)
-- **Height**: 55px (1.25x scaling for high-DPI clarity)
-- **Background**: `#E61a1b26` (Tokyo Night dark surface with 90% alpha)
-- **Border**: 1px subtle divider (`#292e42`) along the bottom edge
+- **Reactive Styling**: Driven dynamically by `Components.Theme.barStyle` (`floating`, `islands`, `normal`, `compact`):
+  - **Floating**: Neo-glass island dock with rounded corners (`radius: 22`), glass sheen highlight, and glowing borders.
+  - **Islands**: Split 3-piece modular capsules for Left, Center, and Right floating over a transparent desktop backdrop.
+  - **Normal**: Classic edge-to-edge flush panel with subtle bottom divider line.
+  - **Compact**: Ultra-slim minimalist floating profile with low-profile padding.
+- **Color Engine**: Centralized reactive tokens via `Components.Theme.*` (singleton defined in `components/Theme.qml`).
 - **Layout Organization**:
   - **Left Section**: Workspaces (`Workspaces.qml`), Distro Badge, Clock (`Clock.qml`), Hardware Monitor (`SysInfo.qml`), Media Player (`Media.qml`).
   - **Center Section**: Dynamic spacing / spacer item.
-  - **Right Section**: Screencast Status (`Screencast.qml`), Network (`Network.qml`), Bluetooth (`Bluetooth.qml`), Brightness (`Brightness.qml`), Audio (`Audio.qml`), Mic (`Mic.qml`), Battery (`Battery.qml`), Settings Flyout Trigger (`Settings.qml`).
+  - **Right Section**: Screencast Status (`Screencast.qml`), Network (`Network.qml`), Bluetooth (`Bluetooth.qml`), Brightness (`Brightness.qml`), Audio (`Audio.qml`), Mic (`Mic.qml`), Battery (`Battery.qml`), Theme Studio Quick Button, Settings Flyout Trigger (`Settings.qml`).
 
 ---
 
@@ -26,21 +33,21 @@ This document provides a complete technical analysis of the **QuickShell** deskt
 ### 2.1 `Workspaces.qml` (Workspace Switcher)
 - **Polling / Trigger**: Runs `niri msg -j workspaces` via `Process` + `StdioCollector`.
 - **Parsing**: Parses JSON array of workspaces, identifying `is_active: true`.
-- **Interaction**: Clicking a workspace pill executes `niri msg action focus-workspace <idx>`.
+- **Interaction**: Clicking a workspace pill executes `niri msg action focus-workspace <idx>`. Smooth capsule morphing animation on focus shift.
 
 ### 2.2 `Clock.qml` (Date & Time Display)
 - **Mechanism**: `Timer` firing every 1,000ms.
-- **Format**: `Qt.formatDateTime(new Date(), "ddd, MMM d • hh:mm AP")` (e.g. `Fri, Sep 4 • 06:15 PM`).
+- **Typography**: Dual-tone typography styling separating weekday, date, and 12-hour time.
 
 ### 2.3 `SysInfo.qml` (System Metrics Telemetry)
-- **Polling**: 2,000ms timer running `quickshell/sysinfo.sh`.
-- **Data Ingestion**: Parses pipe-delimited string containing CPU %, Temp, Fan, RAM %, Net Up/Down, AMD iGPU, and NVIDIA dGPU telemetry.
-- **Badge & Modal**: Displays compact badge on bar; click opens detailed hardware dashboard.
+- **Polling**: 1,000ms timer running `quickshell/sysinfo.sh` while hovering over badge; background 30,000ms timer for network stats.
+- **Data Ingestion**: Parses structured JSON object containing CPU %, Temp, Fan, CPU Package Power (PPT in Watts), RAM %, Net Up/Down, persistent daily/monthly usage, NVMe SSD live read/write speeds and boot totals, AMD iGPU, zero-wake NVIDIA dGPU status, system uptime (`Xd Xh Xm`), and real-time total system power draw in Watts.
+- **Badge & Modal**: Displays compact telemetry pill on bar; hovering opens detailed 1.75x scaled hardware dashboard card.
 
 ### 2.4 `Media.qml` (Interactive Media Pill)
 - **Polling**: 1,000ms timer running `quickshell/media.sh`.
-- **Metadata**: Parses `{{ status }}|||{{ artist }}|||{{ title }}|||{{ album }}|||{{ mpris:artUrl }}`.
-- **Interactive Popup**: Hovering / clicking displays album art thumbnail and full playback controls (Previous, Play/Pause, Next).
+- **Visualizer**: 3 dynamic dancing equalizer bars with randomized heights that animate live during track playback.
+- **Interactive Popup**: Hovering / clicking displays album art thumbnail, track position seeking, and full playback controls (Previous, Play/Pause, Next).
 
 ### 2.5 `Screencast.qml` (Recording Controller)
 - **Polling**: Runs `quickshell/screencast.sh status`.
@@ -72,4 +79,13 @@ This document provides a complete technical analysis of the **QuickShell** deskt
 - **Output**: Battery percentage and dynamic charging/discharging glyph.
 
 ### 2.12 `Settings.qml` (Control Center & Modals)
-- **Scope**: 2,936 lines of QML orchestrating the control center flyout, quick toggles, sliders, and full modals for Wi-Fi, Bluetooth, Wallpapers, and Notifications.
+- **Scope**: Bento box control center providing quick toggles, master volume/brightness sliders, 1-Click Theme Studio (7 presets), 1-Click Bar Style switcher (4 styles), Wi-Fi modal with layer-shell overlay password authentication, Bluetooth modal, and notification center.
+
+---
+
+## 3. Safe Shell Reload (`reload-shell.sh`)
+
+To prevent media interruption during desktop bar restarts, `quickshell/reload-shell.sh` provides an atomic restart routine:
+1. Queries `playerctl` for active playback status prior to terminating `qs`.
+2. Restarts `qs -d -p shell.qml`.
+3. Checks if playback was paused as a side-effect and automatically issues `playerctl play` to resume audio smoothly.

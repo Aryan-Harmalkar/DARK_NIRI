@@ -2,7 +2,7 @@
 # wallpaperctl - CLI Controller for HTML/Web Wallpaper Engine
 SOCKET_PATH="/tmp/qs-wallpaper-${UID}.sock"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENGINE_PY="$DIR/engine.py"
+ENGINE_BIN="$DIR/wallpaper-engine"
 CONFIG_FILE="$DIR/config.json"
 STATE_FILE="$HOME/.config/niri/current_wallpaper"
 export GSK_RENDERER="gl"
@@ -34,8 +34,8 @@ start_engine() {
         return 0
     fi
     rm -f "$SOCKET_PATH"
-    pkill -f "python3.*quickshell/wallpaper-engine/engine.py" 2>/dev/null || true
-    nohup /usr/bin/python3 "$ENGINE_PY" >/dev/null 2>&1 &
+    pkill -x wallpaper-engine 2>/dev/null || true
+    nohup "$ENGINE_BIN" >/dev/null 2>&1 &
     disown
     # Wait for socket up to 3 seconds
     for i in {1..30}; do
@@ -52,7 +52,7 @@ stop_engine() {
         send_ipc '{"cmd": "stop"}' >/dev/null 2>&1
         sleep 0.2
     fi
-    pkill -f "python3.*quickshell/wallpaper-engine/engine.py" 2>/dev/null || true
+    pkill -x wallpaper-engine 2>/dev/null || true
     rm -f "$SOCKET_PATH"
 }
 

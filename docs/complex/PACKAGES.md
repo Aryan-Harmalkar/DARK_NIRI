@@ -42,6 +42,8 @@ This document categorizes all software packages required to run, configure, and 
 ### 1.5 Wallpaper & Screen Capture
 | Package Name | Source | Purpose | Required | What Breaks If Missing |
 | :--- | :--- | :--- | :---: | :--- |
+| `webkitgtk-6.0` | Official | WebKitGTK 6.0 engine for native web wallpapers | **Yes** | HTML/Web wallpaper engine fails |
+| `gtk4-layer-shell` | Official | Wayland layer-shell integration for GTK4 | **Yes** | Web wallpaper cannot render on background layer |
 | `swaybg` | Official | Wayland wallpaper utility (images & solid colors)| **Yes** | Static wallpapers & canvas colors break |
 | `mpvpaper` | AUR | Video wallpaper utility (animated wallpapers) | Optional | Live animated wallpapers fail |
 | `ffmpegthumbnailer`| Official | Fast video thumbnail extractor | Optional | Video wallpaper thumbnails in Gallery fallback to ffmpeg |
@@ -52,12 +54,22 @@ This document categorizes all software packages required to run, configure, and 
 | `wl-clipboard` | Official | Wayland clipboard utilities (`wl-copy`, `wl-paste`)| **Yes** | Clipboard manager & screenshot copying fail |
 | `cliphist` | Official | Clipboard history manager | **Yes** | `Mod+V` clipboard history fails |
 
-### 1.6 Typography & Icons
+### 1.6 Rust Toolchain & Utilities (`dark-tools-rs`)
+| Package Name | Source | Purpose | Required | What Breaks If Missing |
+| :--- | :--- | :--- | :---: | :--- |
+| `rust` / `cargo` | Official | Native compiler toolchain for `dark-tools-rs` | **Yes** | Cannot compile or rebuild native tools & daemons |
+
+### 1.7 Typography & Icons
 | Package Name | Source | Purpose | Required | What Breaks If Missing |
 | :--- | :--- | :--- | :---: | :--- |
 | `ttf-inter` | Official | Inter UI font family | **Yes** | System fonts fallback to generic sans-serif |
 | `ttf-nerd-fonts-symbols`| Official | Nerd Font icons for Rofi & QML widgets | **Yes** | Icons render as missing glyphs / squares |
 | `papirus-icon-theme`| Official | Papirus dark application icons | Optional | Application icons in Fuzzel/Rofi fallback |
+
+### 1.8 Workspace Automation
+| Package Name | Source | Purpose | Required | What Breaks If Missing |
+| :--- | :--- | :--- | :---: | :--- |
+| `antigravity-ide` | AUR / Binary | Advanced AI-powered pair programming IDE | Optional | Development IDE unavailable |
 
 ---
 
@@ -70,8 +82,11 @@ sudo pacman -S --needed \
     pipewire wireplumber libpulse playerctl \
     networkmanager bluez bluez-utils \
     brightnessctl power-profiles-daemon lm_sensors upower \
-    swaybg ffmpegthumbnailer ffmpeg wf-recorder grim slurp wl-clipboard cliphist \
-    ttf-inter ttf-nerd-fonts-symbols papirus-icon-theme python
+    webkitgtk-6.0 gtk4-layer-shell swaybg ffmpegthumbnailer ffmpeg wf-recorder grim slurp wl-clipboard cliphist \
+    ttf-inter ttf-nerd-fonts-symbols papirus-icon-theme rust cargo git
+
+# Enable Bluetooth, Wi-Fi, and Power Profile daemons
+sudo systemctl enable --now NetworkManager bluetooth power-profiles-daemon
 
 # AUR Packages (using yay or paru)
 yay -S --needed quickshell-git mpvpaper

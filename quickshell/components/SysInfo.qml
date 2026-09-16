@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "." as Components
 
 Item {
     id: root
@@ -32,6 +33,14 @@ Item {
     property int nvUtil: 0
     property string nvPower: "0 W"
     property string nvStatus: "Sleeping"
+    property string uptime: "0m"
+    property string cpuPower: "0 W"
+    property string totalPower: "0 W"
+    property string diskName: "nvme0n1"
+    property string diskRead: "0 B/s"
+    property string diskWrite: "0 B/s"
+    property string diskTotalRead: "0 B"
+    property string diskTotalWrite: "0 B"
 
     Process {
         id: sysProcess
@@ -46,6 +55,7 @@ Item {
                     root.cpuPct = data.cpu_pct || 0
                     root.cpuTemp = data.cpu_temp || 40
                     root.cpuFan = data.cpu_fan || "Auto"
+                    root.cpuPower = data.cpu_power || "0 W"
 
                     root.ramUsed = data.ram_used || "0.0"
                     root.ramTotal = data.ram_total || "0.0"
@@ -66,6 +76,14 @@ Item {
                     root.nvUtil = data.nv_util || 0
                     root.nvPower = data.nv_power || "0 W"
                     root.nvStatus = data.nv_status || "Sleeping"
+
+                    root.uptime = data.uptime || "0m"
+                    root.totalPower = data.total_power || "0 W"
+                    root.diskName = data.disk_name || "nvme0n1"
+                    root.diskRead = data.disk_read || "0 B/s"
+                    root.diskWrite = data.disk_write || "0 B/s"
+                    root.diskTotalRead = data.disk_total_read || "0 B"
+                    root.diskTotalWrite = data.disk_total_write || "0 B"
                 } catch(e) {}
             }
         }
@@ -91,10 +109,10 @@ Item {
     Rectangle {
         id: badgeRect
         width: contentRow.implicitWidth + 18
-        height: 30
-        radius: 15
-        color: hoverArea.containsMouse ? "#24283b" : "#1f2335"
-        border.color: hoverArea.containsMouse ? "#7aa2f7" : "#292e42"
+        height: 28
+        radius: 14
+        color: hoverArea.containsMouse ? Components.Theme.surfaceHover : Components.Theme.surface
+        border.color: hoverArea.containsMouse ? Components.Theme.accent : Components.Theme.border
         border.width: 1
         anchors.verticalCenter: parent.verticalCenter
 
@@ -108,14 +126,14 @@ Item {
 
             Text {
                 text: "󰍛"
-                color: root.cpuPct > 75 ? "#f7768e" : (root.cpuPct > 45 ? "#e0af68" : "#7aa2f7")
+                color: root.cpuPct > 75 ? Components.Theme.danger : (root.cpuPct > 45 ? Components.Theme.warning : Components.Theme.accent)
                 font.pixelSize: 16
                 anchors.verticalCenter: parent.verticalCenter
             }
 
             Text {
                 text: root.cpuPct + "%"
-                color: "#c0caf5"
+                color: Components.Theme.fg
                 font.pixelSize: 13
                 font.bold: true
                 anchors.verticalCenter: parent.verticalCenter
@@ -124,20 +142,20 @@ Item {
             Rectangle {
                 width: 1
                 height: 12
-                color: "#3b4261"
+                color: Components.Theme.border
                 anchors.verticalCenter: parent.verticalCenter
             }
 
             Text {
                 text: "󰘚"
-                color: root.ramPct > 80 ? "#f7768e" : "#9ece6a"
+                color: root.ramPct > 80 ? Components.Theme.danger : Components.Theme.success
                 font.pixelSize: 15
                 anchors.verticalCenter: parent.verticalCenter
             }
 
             Text {
                 text: root.ramPct + "%"
-                color: "#c0caf5"
+                color: Components.Theme.fg
                 font.pixelSize: 13
                 font.bold: true
                 anchors.verticalCenter: parent.verticalCenter
@@ -158,20 +176,20 @@ Item {
         id: hoverPopup
         anchor.window: barWindow
         anchor.rect.x: Math.round(badgeRect.mapToItem(null, 0, 0).x - 40)
-        anchor.rect.y: 55
+        anchor.rect.y: Math.round(barWindow.height + 4)
         anchor.rect.width: 580
         anchor.rect.height: 1
 
         implicitWidth: 580
-        implicitHeight: 390
+        implicitHeight: 516
         visible: hoverArea.containsMouse
         color: "transparent"
 
         Rectangle {
             anchors.fill: parent
             radius: 18
-            color: "#F51a1b26"
-            border.color: "#3b4261"
+            color: Components.Theme.bgAlpha
+            border.color: Components.Theme.border
             border.width: 1
 
             Column {
@@ -188,12 +206,12 @@ Item {
                         width: 38
                         height: 38
                         radius: 10
-                        color: "#16161e"
+                        color: Components.Theme.bg
                         anchors.verticalCenter: parent.verticalCenter
 
                         Text {
                             text: "󰍛"
-                            color: "#7aa2f7"
+                            color: Components.Theme.accent
                             font.pixelSize: 22
                             anchors.centerIn: parent
                         }
@@ -205,13 +223,13 @@ Item {
 
                         Text {
                             text: root.cpuName + " (" + root.cpuCores + ")"
-                            color: "#c0caf5"
+                            color: Components.Theme.fg
                             font.pixelSize: 15
                             font.bold: true
                         }
                         Text {
                             text: "Live System Telemetry & Hardware Monitor"
-                            color: "#565f89"
+                            color: Components.Theme.fgMuted
                             font.pixelSize: 12
                         }
                     }
@@ -221,7 +239,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     height: 1
-                    color: "#292e42"
+                    color: Components.Theme.surfaceHover
                 }
 
                 // 1. CPU Section
@@ -236,16 +254,17 @@ Item {
                         Row {
                             anchors.left: parent.left
                             spacing: 8
-                            Text { text: "󰻠"; color: "#7aa2f7"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "CPU Load"; color: "#c0caf5"; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "󰻠"; color: Components.Theme.accent; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "CPU Load"; color: Components.Theme.fg; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         }
 
                         Row {
                             anchors.right: parent.right
                             spacing: 14
-                            Text { text: "󰈐 " + root.cpuFan + (root.cpuFan !== "Auto" ? " RPM" : ""); color: "#7aa2f7"; font.pixelSize: 13; font.bold: true }
-                            Text { text: root.cpuTemp + "°C"; color: root.cpuTemp > 70 ? "#f7768e" : "#e0af68"; font.pixelSize: 13; font.bold: true }
-                            Text { text: root.cpuPct + "%"; color: "#7aa2f7"; font.pixelSize: 13; font.bold: true }
+                            Text { text: "󰈐 " + root.cpuFan + (root.cpuFan !== "Auto" ? " RPM" : ""); color: Components.Theme.accent; font.pixelSize: 13; font.bold: true }
+                            Text { text: root.cpuPower; color: Components.Theme.accentTertiary; font.pixelSize: 13; font.bold: true }
+                            Text { text: root.cpuTemp + "°C"; color: root.cpuTemp > 70 ? Components.Theme.danger : Components.Theme.warning; font.pixelSize: 13; font.bold: true }
+                            Text { text: root.cpuPct + "%"; color: Components.Theme.accent; font.pixelSize: 13; font.bold: true }
                         }
                     }
 
@@ -254,13 +273,13 @@ Item {
                         width: parent.width
                         height: 9
                         radius: 5
-                        color: "#16161e"
+                        color: Components.Theme.bg
 
                         Rectangle {
                             width: parent.width * (Math.min(100, Math.max(0, root.cpuPct)) / 100)
                             height: parent.height
                             radius: 5
-                            color: root.cpuPct > 75 ? "#f7768e" : (root.cpuPct > 45 ? "#e0af68" : "#7aa2f7")
+                            color: root.cpuPct > 75 ? Components.Theme.danger : (root.cpuPct > 45 ? Components.Theme.warning : Components.Theme.accent)
                             Behavior on width { NumberAnimation { duration: 150 } }
                         }
                     }
@@ -278,14 +297,14 @@ Item {
                         Row {
                             anchors.left: parent.left
                             spacing: 8
-                            Text { text: "󰘚"; color: "#9ece6a"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Memory (RAM)"; color: "#c0caf5"; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "󰘚"; color: Components.Theme.success; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Memory (RAM)"; color: Components.Theme.fg; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         }
 
                         Text {
                             anchors.right: parent.right
                             text: root.ramUsed + " / " + root.ramTotal + " GB (" + root.ramPct + "%)"
-                            color: root.ramPct > 80 ? "#f7768e" : "#9ece6a"
+                            color: root.ramPct > 80 ? Components.Theme.danger : Components.Theme.success
                             font.pixelSize: 13
                             font.bold: true
                         }
@@ -296,13 +315,13 @@ Item {
                         width: parent.width
                         height: 9
                         radius: 5
-                        color: "#16161e"
+                        color: Components.Theme.bg
 
                         Rectangle {
                             width: parent.width * (Math.min(100, Math.max(0, root.ramPct)) / 100)
                             height: parent.height
                             radius: 5
-                            color: root.ramPct > 80 ? "#f7768e" : "#9ece6a"
+                            color: root.ramPct > 80 ? Components.Theme.danger : Components.Theme.success
                             Behavior on width { NumberAnimation { duration: 150 } }
                         }
                     }
@@ -313,8 +332,8 @@ Item {
                     width: parent.width
                     height: 84
                     radius: 10
-                    color: "#16161e"
-                    border.color: "#292e42"
+                    color: Components.Theme.bg
+                    border.color: Components.Theme.surfaceHover
                     border.width: 1
 
                     Column {
@@ -331,21 +350,21 @@ Item {
                                 width: (parent.width - 1) / 2
                                 spacing: 10
                                 anchors.verticalCenter: parent.verticalCenter
-                                Text { text: "󰇚"; color: "#7dcfff"; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: "Download:"; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: root.netDown; color: "#7dcfff"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "󰇚"; color: Components.Theme.accentTertiary; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Download:"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.netDown; color: Components.Theme.accentTertiary; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                             }
 
-                            Rectangle { width: 1; height: 18; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+                            Rectangle { width: 1; height: 18; color: Components.Theme.surfaceHover; anchors.verticalCenter: parent.verticalCenter }
 
                             Row {
                                 width: (parent.width - 1) / 2
                                 spacing: 10
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.leftMargin: 12
-                                Text { text: "󰕒"; color: "#9ece6a"; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: "Upload:"; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: root.netUp; color: "#9ece6a"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "󰕒"; color: Components.Theme.success; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Upload:"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.netUp; color: Components.Theme.success; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                             }
                         }
 
@@ -353,7 +372,7 @@ Item {
                         Rectangle {
                             width: parent.width
                             height: 1
-                            color: "#24283b"
+                            color: Components.Theme.bgAlt
                         }
 
                         // Total Data Used (Today & This Month)
@@ -365,27 +384,104 @@ Item {
                                 width: (parent.width - 1) / 2
                                 spacing: 10
                                 anchors.verticalCenter: parent.verticalCenter
-                                Text { text: "󰔛"; color: "#e0af68"; font.pixelSize: 17; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: "Today:"; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: root.dataDay; color: "#e0af68"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "󰔛"; color: Components.Theme.warning; font.pixelSize: 17; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Today:"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.dataDay; color: Components.Theme.warning; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                             }
 
-                            Rectangle { width: 1; height: 18; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+                            Rectangle { width: 1; height: 18; color: Components.Theme.surfaceHover; anchors.verticalCenter: parent.verticalCenter }
 
                             Row {
                                 width: (parent.width - 1) / 2
                                 spacing: 10
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.leftMargin: 12
-                                Text { text: "󰃭"; color: "#bb9af7"; font.pixelSize: 17; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: "Month:"; color: "#565f89"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: root.dataMonth; color: "#bb9af7"; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "󰃭"; color: Components.Theme.accentSecondary; font.pixelSize: 17; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Month:"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.dataMonth; color: Components.Theme.accentSecondary; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                             }
                         }
                     }
                 }
 
-                // 4. Dual GPU Section (AMD iGPU + NVIDIA dGPU)
+                // 4. NVMe SSD Storage I/O Section
+                Rectangle {
+                    width: parent.width
+                    height: 84
+                    radius: 10
+                    color: Components.Theme.bg
+                    border.color: Components.Theme.surfaceHover
+                    border.width: 1
+
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
+
+                        // Live Disk Transfer Rates (Read & Write)
+                        Row {
+                            width: parent.width
+                            height: 24
+
+                            Row {
+                                width: (parent.width - 1) / 2
+                                spacing: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                Text { text: "󰇚"; color: Components.Theme.accent; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Disk Read:"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.diskRead; color: Components.Theme.accent; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            }
+
+                            Rectangle { width: 1; height: 18; color: Components.Theme.surfaceHover; anchors.verticalCenter: parent.verticalCenter }
+
+                            Row {
+                                width: (parent.width - 1) / 2
+                                spacing: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 12
+                                Text { text: "󰕒"; color: Components.Theme.warning; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Disk Write:"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.diskWrite; color: Components.Theme.warning; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            }
+                        }
+
+                        // Divider
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: Components.Theme.bgAlt
+                        }
+
+                        // Total Boot I/O (Read & Written)
+                        Row {
+                            width: parent.width
+                            height: 24
+
+                            Row {
+                                width: (parent.width - 1) / 2
+                                spacing: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                Text { text: "󰋊"; color: Components.Theme.accentTertiary; font.pixelSize: 17; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Boot Read:"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.diskTotalRead; color: Components.Theme.accentTertiary; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            }
+
+                            Rectangle { width: 1; height: 18; color: Components.Theme.surfaceHover; anchors.verticalCenter: parent.verticalCenter }
+
+                            Row {
+                                width: (parent.width - 1) / 2
+                                spacing: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 12
+                                Text { text: "󰔛"; color: Components.Theme.accentSecondary; font.pixelSize: 17; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Boot Written:"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.diskTotalWrite; color: Components.Theme.accentSecondary; font.pixelSize: 14; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            }
+                        }
+                    }
+                }
+
+                // 5. Dual GPU Section (AMD iGPU + NVIDIA dGPU)
                 Row {
                     width: parent.width
                     spacing: 12
@@ -395,8 +491,8 @@ Item {
                         width: (parent.width - 12) / 2
                         height: 84
                         radius: 10
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Column {
@@ -406,19 +502,19 @@ Item {
 
                             Row {
                                 spacing: 6
-                                Text { text: "󰢮"; color: "#f7768e"; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: "Radeon 740M (iGPU)"; color: "#c0caf5"; font.pixelSize: 12; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "󰢮"; color: Components.Theme.danger; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Radeon 740M (iGPU)"; color: Components.Theme.fg; font.pixelSize: 12; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                             }
 
                             Row {
                                 spacing: 8
-                                Text { text: "Temp: " + root.amdTemp + "°C"; color: "#e0af68"; font.pixelSize: 12; font.bold: true }
-                                Text { text: "• Power: " + root.amdPower; color: "#565f89"; font.pixelSize: 12 }
+                                Text { text: "Temp: " + root.amdTemp + "°C"; color: Components.Theme.warning; font.pixelSize: 12; font.bold: true }
+                                Text { text: "• Power: " + root.amdPower; color: Components.Theme.fgMuted; font.pixelSize: 12 }
                             }
 
                             Text {
                                 text: "Fan Speed: " + root.amdFan + (root.amdFan !== "Auto" ? " RPM" : "");
-                                color: "#565f89";
+                                color: Components.Theme.fgMuted;
                                 font.pixelSize: 11
                             }
                         }
@@ -429,8 +525,8 @@ Item {
                         width: (parent.width - 12) / 2
                         height: 84
                         radius: 10
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Column {
@@ -441,30 +537,94 @@ Item {
                             Row {
                                 spacing: 6
                                 Text { text: "󰢮"; color: "#73daca"; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
-                                Text { text: "RTX 3050 Laptop (dGPU)"; color: "#c0caf5"; font.pixelSize: 12; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "RTX 3050 Laptop (dGPU)"; color: Components.Theme.fg; font.pixelSize: 12; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                             }
 
                             Row {
                                 spacing: 8
                                 Text {
                                     text: root.nvStatus === "Active" ? ("Temp: " + root.nvTemp + "°C") : "Status: Sleeping";
-                                    color: root.nvStatus === "Active" ? "#e0af68" : "#565f89";
+                                    color: root.nvStatus === "Active" ? Components.Theme.warning : Components.Theme.fgMuted;
                                     font.pixelSize: 12
                                     font.bold: true
                                 }
                                 Text {
                                     visible: root.nvStatus === "Active"
                                     text: "• Power: " + root.nvPower;
-                                    color: "#565f89";
+                                    color: Components.Theme.fgMuted;
                                     font.pixelSize: 12
                                 }
                             }
 
                             Text {
                                 text: root.nvStatus === "Active" ? ("Usage: " + root.nvUtil + "% • Dedicated Active") : "Power Save: D3 Cold Suspend";
-                                color: "#565f89";
+                                color: Components.Theme.fgMuted;
                                 font.pixelSize: 11
                             }
+                        }
+                    }
+                }
+
+                // 5. Uptime Footer
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: Components.Theme.surfaceHover
+                }
+
+                Item {
+                    width: parent.width
+                    height: 18
+
+                    Row {
+                        anchors.left: parent.left
+                        spacing: 8
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Text {
+                            text: "󰔚"
+                            color: Components.Theme.accentTertiary
+                            font.pixelSize: 15
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: "Uptime"
+                            color: Components.Theme.fgMuted
+                            font.pixelSize: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: root.uptime
+                            color: Components.Theme.accentTertiary
+                            font.pixelSize: 13
+                            font.bold: true
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    Row {
+                        anchors.right: parent.right
+                        spacing: 8
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Text {
+                            text: "󰠠"
+                            color: Components.Theme.warning
+                            font.pixelSize: 15
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: "Total"
+                            color: Components.Theme.fgMuted
+                            font.pixelSize: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: root.totalPower
+                            color: Components.Theme.warning
+                            font.pixelSize: 13
+                            font.bold: true
+                            anchors.verticalCenter: parent.verticalCenter
                         }
                     }
                 }

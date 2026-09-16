@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "." as Components
 
 Item {
     id: root
@@ -42,11 +43,11 @@ Item {
             width: 32
             height: 32
             radius: 16
-            color: root.recordStatus === "recording" ? "#f7768e" : "#e0af68"
+            color: root.recordStatus === "recording" ? Components.Theme.danger : Components.Theme.warning
             
             Text {
                 text: root.recordStatus === "recording" ? "󰏤" : "󰐊"
-                color: "#1a1b26"
+                color: Components.Theme.bg
                 font.pixelSize: 18
                 anchors.centerIn: parent
             }
@@ -66,11 +67,11 @@ Item {
             width: 32
             height: 32
             radius: 16
-            color: "#f7768e"
+            color: Components.Theme.danger
             
             Text {
                 text: "󰓛"
-                color: "#1a1b26"
+                color: Components.Theme.bg
                 font.pixelSize: 18
                 anchors.centerIn: parent
             }

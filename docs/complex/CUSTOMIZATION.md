@@ -30,4 +30,4 @@ This guide explains how to add new widgets, custom scripts, and personalized the
    // Inside the left, center, or right RowLayout in shell.qml:
    Components.MyWidget {}
    ```
-3. Reload QuickShell: Click the reload button in the Settings panel or run `killall qs; qs -d -p $HOME/DARK_NIRI/quickshell/shell.qml &`.
+3. Reload QuickShell: Click the reload button in the Settings panel or run `$HOME/DARK_NIRI/quickshell/reload-shell.sh`.

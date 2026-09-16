@@ -21,20 +21,23 @@ This document maps every UI component and script in Dark Niri to the exact binar
 | `niri/osd.sh` | `wpctl set-volume / get-volume` | `wireplumber` | Audio | Media volume keys do not adjust sound |
 | `niri/osd.sh` | `brightnessctl set / get` | `brightnessctl` | Display | Display brightness keys do nothing |
 | `niri/osd.sh` | `notify-send -h string:...` | `libnotify` / `mako` | OSD | Visual volume/brightness popups not displayed |
-| `quickshell/wifi.sh` | `nmcli radio wifi` | `networkmanager` | Network | Wi-Fi toggle fails |
-| `quickshell/wifi.sh` | `nmcli dev wifi list / connect` | `networkmanager` | Network | Wi-Fi network scanning and connection fail |
-| `quickshell/wifi.sh` | `gdbus call ... AccessPoint Flags`| `glib2` / `networkmanager`| Network | WPS flag detection fails (falls back to False) |
-| `quickshell/bluetooth.sh`| `bluetoothctl show / devices` | `bluez-utils` | Bluetooth | Bluetooth list is empty |
-| `quickshell/bluetooth.sh`| `pactl list cards / set-profile` | `libpulse` | Audio | Bluetooth audio profile (A2DP/HSP) switching fails |
+| `scripts/dual-antigravity.sh`| `antigravity-ide` | `antigravity-ide` | Workspace | Antigravity IDE fails to open |
+| `quickshell/reload-shell.sh` | `killall qs && qs -d -p ...` | `quickshell-git`, `playerctl` | Desktop Shell | Bar cannot reload cleanly with media preservation |
+| `quickshell/theme-manager` | Native Rust binary execution | `dark-tools-rs` (Rust) | Theming | 1-Click theme & bar style switching fail |
+| `quickshell/wifi.sh` (`wifi`) | `nmcli radio wifi` | `networkmanager` | Network | Wi-Fi toggle fails |
+| `quickshell/wifi.sh` (`wifi`) | `nmcli dev wifi list / connect` | `networkmanager` | Network | Wi-Fi network scanning and connection fail |
+| `quickshell/wifi.sh` (`wifi`) | `gdbus call ... AccessPoint Flags`| `glib2` / `networkmanager`| Network | WPS flag detection fails (falls back to False) |
+| `quickshell/bluetooth.sh` (`bluetooth`)| `bluetoothctl show / devices` | `bluez-utils` | Bluetooth | Bluetooth list is empty |
+| `quickshell/bluetooth.sh` (`bluetooth`)| `pactl list cards / set-profile` | `libpulse` | Audio | Bluetooth audio profile (A2DP/HSP) switching fails |
 | `quickshell/media.sh` | `playerctl metadata ...` | `playerctl` | Media | Media player widget displays empty / hidden |
-| `quickshell/notifications.sh`| `makoctl history -j / list -j`| `mako` | Notifications | Notification center shows 0 notifications |
-| `quickshell/notifications.sh`| `makoctl dismiss -n <id> / -a`| `mako` | Notifications | Dismissing notifications has no effect |
+| `quickshell/notifications.sh` (`notifications`)| `makoctl history -j / list -j`| `mako` | Notifications | Notification center shows 0 notifications |
+| `quickshell/notifications.sh` (`notifications`)| `makoctl dismiss -n <id> / -a`| `mako` | Notifications | Dismissing notifications has no effect |
 | `quickshell/powerprofile.sh`| `powerprofilesctl get / set` | `power-profiles-daemon` | Power | Profile cycling falls back to CPU scaling governor |
 | `quickshell/screencast.sh`| `wf-recorder -g ...` | `wf-recorder`, `slurp` | Capture | Screencast recording fails to start |
 | `quickshell/screencast.sh`| `killall -SIGUSR1 wf-recorder` | `psmisc`, `wf-recorder` | Capture | Pause/Resume screencast fails |
 | `quickshell/shutdown.sh` | `rofi -dmenu -password ...` | `rofi-wayland` | System | Sudo password prompt does not open |
-| `quickshell/sysinfo.sh` | `free -b` | `procps-ng` | Monitoring | RAM percentage and used GB calculation fail |
+| `quickshell/sysinfo.sh` | `free -b`, `sensors`, `/proc` | `procps-ng`, `lm_sensors` | Monitoring | System metrics output incomplete |
 | `quickshell/sysinfo.sh` | `nvidia-smi --query-gpu=...` | `nvidia-utils` | Monitoring | NVIDIA GPU metrics output 0 / inactive |
-| `quickshell/wallpaper-engine/engine.py` | `WebKit.WebView()`, `Gtk4LayerShell` | `webkitgtk-6.0`, `gtk4-layer-shell`, `python-gobject` | Wallpaper | HTML/Web wallpaper engine fails to initialize |
-| `quickshell/wallpaper-engine/wallpaperctl` | IPC UNIX socket commands | `python` | Wallpaper Controller | CLI wallpaper switching fails |
+| `quickshell/wallpaper-engine/wallpaper-engine` | Native GTK4 Layer Shell + WebKit6 | `webkitgtk-6.0`, `gtk4-layer-shell`, `dark-tools-rs` | Wallpaper | HTML/Web wallpaper engine fails to initialize |
+| `quickshell/wallpaper-engine/wallpaperctl` | UNIX domain socket IPC (`wp-ipc`)| `dark-tools-rs` (Rust) | Wallpaper Controller | CLI wallpaper switching fails |
 | `quickshell/components/Workspaces.qml`| `niri msg -j workspaces` | `niri` | Compositor IPC | Workspace indicator pills render empty |

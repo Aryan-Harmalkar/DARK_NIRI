@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "." as Components
 
 Item {
     id: root
@@ -13,6 +14,11 @@ Item {
     property bool isWifiOpen: false
     property bool isBtOpen: false
     property bool isNotifOpen: false
+    property bool isThemesOpen: false
+
+    property var themesList: []
+    property string activeThemeId: "tokyo-night"
+    property string activeThemeName: "Tokyo Night"
 
     property var wallpapers: []
     property string activeWallpaper: ""
@@ -47,14 +53,14 @@ Item {
     property string activePowerProfile: "balanced"
 
     readonly property var canvasColors: [
-        { name: "Tokyo Night", hex: "#1a1b26" },
+        { name: "Tokyo Night", hex: Components.Theme.bg },
         { name: "Pure Black", hex: "#0c0d14" },
         { name: "Midnight Blue", hex: "#0f141c" },
-        { name: "Cyber Purple", hex: "#1f1a30" },
-        { name: "Nord Dark", hex: "#2e3440" },
-        { name: "Catppuccin Mocha", hex: "#1e1e2e" },
-        { name: "Slate Charcoal", hex: "#24283b" },
-        { name: "Emerald Night", hex: "#112218" }
+        { name: "Cyber Purple", hex: Qt.darker(Components.Theme.accentSecondary, 3.5) },
+        { name: "Nord Dark", hex: Components.Theme.bgAlt },
+        { name: "Catppuccin Mocha", hex: Components.Theme.bg },
+        { name: "Slate Charcoal", hex: Components.Theme.bgAlt },
+        { name: "Emerald Night", hex: Qt.darker(Components.Theme.success, 4.0) }
     ]
 
     function getFilteredWallpapers() {
@@ -100,6 +106,30 @@ Item {
                     root.notifications = JSON.parse(text.trim())
                 } catch(e) {
                     root.notifications = []
+                }
+            }
+        }
+    }
+
+    // Themes Backend Process
+    Process {
+        id: themesListProcess
+        command: [Quickshell.env("HOME") + "/DARK_NIRI/quickshell/theme-manager", "list"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    let list = JSON.parse(text.trim())
+                    root.themesList = list
+                    for (let i = 0; i < list.length; i++) {
+                        if (list[i].is_active) {
+                            root.activeThemeId = list[i].id
+                            root.activeThemeName = list[i].name
+                            break
+                        }
+                    }
+                } catch(e) {
+                    root.themesList = []
                 }
             }
         }
@@ -320,20 +350,59 @@ Item {
         spacing: 10
         anchors.verticalCenter: parent.verticalCenter
 
-        // 1. Notification Icon Button (Left side of settings)
+        // 1. Theme Button (Opens Theme Studio Modal)
+        Rectangle {
+            id: themeBtn
+            width: 32
+            height: 32
+            radius: 16
+            color: themeMouse.containsMouse || root.isThemesOpen ? Components.Theme.surfaceHover : "transparent"
+            anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color { ColorAnimation { duration: 150 } }
+
+            Text {
+                text: "󰏘"
+                color: root.isThemesOpen ? Components.Theme.accent : (themeMouse.containsMouse ? Components.Theme.accentSecondary : Components.Theme.fg)
+                font.pixelSize: 20
+                anchors.centerIn: parent
+
+                Behavior on color { ColorAnimation { duration: 150 } }
+            }
+
+            MouseArea {
+                id: themeMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    root.isThemesOpen = !root.isThemesOpen
+                    if (root.isThemesOpen) {
+                        root.isSettingsOpen = false
+                        root.isNotifOpen = false
+                        root.isGalleryOpen = false
+                        root.isWifiOpen = false
+                        root.isBtOpen = false
+                        themesListProcess.running = true
+                    }
+                }
+            }
+        }
+
+        // 2. Notification Icon Button
         Rectangle {
             id: notifBtn
             width: 32
             height: 32
             radius: 16
-            color: notifMouse.containsMouse || root.isNotifOpen ? "#24283b" : "transparent"
+            color: notifMouse.containsMouse || root.isNotifOpen ? Components.Theme.surfaceHover : "transparent"
             anchors.verticalCenter: parent.verticalCenter
 
             Behavior on color { ColorAnimation { duration: 150 } }
 
             Text {
                 text: root.notifications.length > 0 ? "󰂚" : "󰂜"
-                color: root.isNotifOpen ? "#7aa2f7" : (notifMouse.containsMouse ? "#bb9af7" : "#c0caf5")
+                color: root.isNotifOpen ? Components.Theme.accent : (notifMouse.containsMouse ? Components.Theme.accentSecondary : Components.Theme.fg)
                 font.pixelSize: 20
                 anchors.centerIn: parent
 
@@ -346,7 +415,7 @@ Item {
                 width: 7
                 height: 7
                 radius: 3.5
-                color: "#f7768e"
+                color: Components.Theme.danger
                 anchors.top: parent.top
                 anchors.right: parent.right
                 anchors.margins: 4
@@ -361,6 +430,7 @@ Item {
                     root.isNotifOpen = !root.isNotifOpen
                     if (root.isNotifOpen) {
                         root.isSettingsOpen = false
+                        root.isThemesOpen = false
                         root.isGalleryOpen = false
                         root.isWifiOpen = false
                         root.isBtOpen = false
@@ -370,20 +440,20 @@ Item {
             }
         }
 
-        // 2. Settings Button on Bar
+        // 3. Settings Control Hub Button on Bar
         Rectangle {
             id: btnRect
             width: 32
             height: 32
             radius: 16
-            color: btnMouse.containsMouse || root.isSettingsOpen ? "#24283b" : "transparent"
+            color: btnMouse.containsMouse || root.isSettingsOpen ? Components.Theme.surfaceHover : "transparent"
             anchors.verticalCenter: parent.verticalCenter
 
             Behavior on color { ColorAnimation { duration: 150 } }
 
             Text {
                 text: "󰒓"
-                color: root.isSettingsOpen ? "#7aa2f7" : (btnMouse.containsMouse ? "#bb9af7" : "#c0caf5")
+                color: root.isSettingsOpen ? Components.Theme.accent : (btnMouse.containsMouse ? Components.Theme.accentSecondary : Components.Theme.fg)
                 font.pixelSize: 20
                 anchors.centerIn: parent
 
@@ -398,6 +468,7 @@ Item {
                 onClicked: {
                     root.isSettingsOpen = !root.isSettingsOpen
                     if (root.isSettingsOpen) {
+                        root.isThemesOpen = false
                         root.isNotifOpen = false
                         root.isGalleryOpen = false
                         root.isWifiOpen = false
@@ -419,20 +490,20 @@ Item {
         id: settingsPopup
         anchor.window: barWindow
         anchor.rect.x: Math.round(barWindow.width - 540 - 20)
-        anchor.rect.y: 55
+        anchor.rect.y: Math.round(barWindow.height + 4)
         anchor.rect.width: 540
         anchor.rect.height: 1
 
         implicitWidth: 540
-        implicitHeight: 600
+        implicitHeight: 785
         visible: root.isSettingsOpen
         color: "transparent"
 
         Rectangle {
             anchors.fill: parent
             radius: 20
-            color: "#F21a1b26"
-            border.color: "#3b4261"
+            color: Components.Theme.bgAlpha
+            border.color: Components.Theme.border
             border.width: 1
 
             // Top-right slide in animation
@@ -462,9 +533,9 @@ Item {
                         height: 74
                         radius: 14
                         color: root.wifiSsid !== "Disconnected"
-                               ? (wifiMouse.containsMouse ? "#344470" : "#283456")
-                               : (wifiMouse.containsMouse ? "#24283b" : "#16161e")
-                        border.color: root.wifiSsid !== "Disconnected" ? "#7aa2f7" : "#292e42"
+                               ? (wifiMouse.containsMouse ? Qt.darker(Components.Theme.accent, 2.0) : Qt.darker(Components.Theme.accent, 2.5))
+                               : (wifiMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.bg)
+                        border.color: root.wifiSsid !== "Disconnected" ? Components.Theme.accent : Components.Theme.surfaceHover
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -481,12 +552,12 @@ Item {
                                 width: 48
                                 height: 48
                                 radius: 12
-                                color: root.wifiSsid !== "Disconnected" ? "#7aa2f7" : "#1f2335"
+                                color: root.wifiSsid !== "Disconnected" ? Components.Theme.accent : Components.Theme.surface
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     text: root.wifiSsid !== "Disconnected" ? "󰤨" : "󰤭"
-                                    color: root.wifiSsid !== "Disconnected" ? "#1a1b26" : "#565f89"
+                                    color: root.wifiSsid !== "Disconnected" ? Components.Theme.bg : Components.Theme.fgMuted
                                     font.pixelSize: 24
                                     anchors.centerIn: parent
                                 }
@@ -499,13 +570,13 @@ Item {
 
                                 Text {
                                     text: "Wi-Fi Networks"
-                                    color: root.wifiSsid !== "Disconnected" ? "#ffffff" : "#c0caf5"
+                                    color: root.wifiSsid !== "Disconnected" ? "#ffffff" : Components.Theme.fg
                                     font.pixelSize: 15
                                     font.bold: true
                                 }
                                 Text {
                                     text: root.wifiSsid !== "Disconnected" ? (root.wifiSsid + " • Manage") : "Disconnected • Scan"
-                                    color: root.wifiSsid !== "Disconnected" ? "#7dcfff" : "#565f89"
+                                    color: root.wifiSsid !== "Disconnected" ? Components.Theme.accentTertiary : Components.Theme.fgMuted
                                     font.pixelSize: 13
                                     elide: Text.ElideRight
                                     width: parent.width
@@ -531,9 +602,9 @@ Item {
                         height: 74
                         radius: 14
                         color: root.isBtOn
-                               ? (btMouse.containsMouse ? "#274868" : "#1e3852")
-                               : (btMouse.containsMouse ? "#24283b" : "#16161e")
-                        border.color: root.isBtOn ? "#7dcfff" : "#292e42"
+                               ? (btMouse.containsMouse ? Qt.darker(Components.Theme.accentTertiary, 2.5) : Qt.darker(Components.Theme.accentTertiary, 3.0))
+                               : (btMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.bg)
+                        border.color: root.isBtOn ? Components.Theme.accentTertiary : Components.Theme.surfaceHover
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -550,12 +621,12 @@ Item {
                                 width: 48
                                 height: 48
                                 radius: 12
-                                color: root.isBtOn ? "#7dcfff" : "#1f2335"
+                                color: root.isBtOn ? Components.Theme.accentTertiary : Components.Theme.surface
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     text: root.isBtOn ? "󰂯" : "󰂲"
-                                    color: root.isBtOn ? "#1a1b26" : "#565f89"
+                                    color: root.isBtOn ? Components.Theme.bg : Components.Theme.fgMuted
                                     font.pixelSize: 24
                                     anchors.centerIn: parent
                                 }
@@ -568,7 +639,7 @@ Item {
 
                                 Text {
                                     text: "Bluetooth Devices"
-                                    color: root.isBtOn ? "#ffffff" : "#c0caf5"
+                                    color: root.isBtOn ? "#ffffff" : Components.Theme.fg
                                     font.pixelSize: 15
                                     font.bold: true
                                 }
@@ -576,7 +647,7 @@ Item {
                                     text: root.btConnectedDeviceName !== ""
                                           ? (root.btConnectedDeviceName + " • Connected")
                                           : (root.isBtOn ? "Enabled • Manage" : "Disabled / Off")
-                                    color: root.isBtOn ? "#7dcfff" : "#565f89"
+                                    color: root.isBtOn ? Components.Theme.accentTertiary : Components.Theme.fgMuted
                                     font.pixelSize: 13
                                     elide: Text.ElideRight
                                     width: parent.width
@@ -602,13 +673,13 @@ Item {
                         height: 74
                         radius: 14
                         color: root.activePowerProfile === "power-saver"
-                               ? (powerTileMouse.containsMouse ? "#274433" : "#1d3326")
+                               ? (powerTileMouse.containsMouse ? Qt.darker(Components.Theme.success, 2.5) : Qt.darker(Components.Theme.success, 3.0))
                                : (root.activePowerProfile === "performance"
-                                  ? (powerTileMouse.containsMouse ? "#54311c" : "#3d2314")
-                                  : (powerTileMouse.containsMouse ? "#2b3c69" : "#1e2a4a"))
+                                  ? (powerTileMouse.containsMouse ? Qt.darker(Components.Theme.warning, 2.5) : Qt.darker(Components.Theme.warning, 3.0))
+                                  : (powerTileMouse.containsMouse ? Qt.darker(Components.Theme.accent, 2.2) : Qt.darker(Components.Theme.accent, 3.0)))
                         border.color: root.activePowerProfile === "power-saver"
-                                      ? "#9ece6a"
-                                      : (root.activePowerProfile === "performance" ? "#ff9e64" : "#7aa2f7")
+                                      ? Components.Theme.success
+                                      : (root.activePowerProfile === "performance" ? Components.Theme.warning : Components.Theme.accent)
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -627,8 +698,8 @@ Item {
                                 height: 48
                                 radius: 12
                                 color: root.activePowerProfile === "power-saver"
-                                       ? "#9ece6a"
-                                       : (root.activePowerProfile === "performance" ? "#ff9e64" : "#7aa2f7")
+                                       ? Components.Theme.success
+                                       : (root.activePowerProfile === "performance" ? Components.Theme.warning : Components.Theme.accent)
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
@@ -637,7 +708,7 @@ Item {
                                     text: root.activePowerProfile === "power-saver"
                                           ? "󰌪"
                                           : (root.activePowerProfile === "performance" ? "󰓅" : "󰾆")
-                                    color: "#1a1b26"
+                                    color: Components.Theme.bg
                                     font.pixelSize: 24
                                     anchors.centerIn: parent
                                 }
@@ -669,19 +740,19 @@ Item {
                                             width: 6
                                             height: 6
                                             radius: 3
-                                            color: root.activePowerProfile === "power-saver" ? "#9ece6a" : "#414868"
+                                            color: root.activePowerProfile === "power-saver" ? Components.Theme.success : Components.Theme.fgMuted
                                         }
                                         Rectangle {
                                             width: 6
                                             height: 6
                                             radius: 3
-                                            color: root.activePowerProfile === "balanced" ? "#7aa2f7" : "#414868"
+                                            color: root.activePowerProfile === "balanced" ? Components.Theme.accent : Components.Theme.fgMuted
                                         }
                                         Rectangle {
                                             width: 6
                                             height: 6
                                             radius: 3
-                                            color: root.activePowerProfile === "performance" ? "#ff9e64" : "#414868"
+                                            color: root.activePowerProfile === "performance" ? Components.Theme.warning : Components.Theme.fgMuted
                                         }
                                     }
                                 }
@@ -693,8 +764,8 @@ Item {
                                              ? "Performance • Turbo"
                                              : "Balanced • Optimal")
                                     color: root.activePowerProfile === "power-saver"
-                                           ? "#9ece6a"
-                                           : (root.activePowerProfile === "performance" ? "#ff9e64" : "#7dcfff")
+                                           ? Components.Theme.success
+                                           : (root.activePowerProfile === "performance" ? Components.Theme.warning : Components.Theme.accentTertiary)
                                     font.pixelSize: 13
                                     elide: Text.ElideRight
                                     width: parent.width
@@ -727,9 +798,9 @@ Item {
                         height: 74
                         radius: 14
                         color: root.isMicMuted
-                               ? (micMouse.containsMouse ? "#632b39" : "#4f232e")
-                               : (micMouse.containsMouse ? "#24283b" : "#1f2335")
-                        border.color: root.isMicMuted ? "#f7768e" : "#292e42"
+                               ? (micMouse.containsMouse ? Qt.darker(Components.Theme.danger, 2.2) : Qt.darker(Components.Theme.danger, 2.8))
+                               : (micMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface)
+                        border.color: root.isMicMuted ? Components.Theme.danger : Components.Theme.surfaceHover
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -746,12 +817,12 @@ Item {
                                 width: 48
                                 height: 48
                                 radius: 12
-                                color: root.isMicMuted ? "#f7768e" : "#16161e"
+                                color: root.isMicMuted ? Components.Theme.danger : Components.Theme.bg
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     text: root.isMicMuted ? "󰍭" : "󰍬"
-                                    color: root.isMicMuted ? "#1a1b26" : "#9ece6a"
+                                    color: root.isMicMuted ? Components.Theme.bg : Components.Theme.success
                                     font.pixelSize: 24
                                     anchors.centerIn: parent
                                 }
@@ -764,13 +835,13 @@ Item {
 
                                 Text {
                                     text: "Microphone"
-                                    color: root.isMicMuted ? "#ffffff" : "#c0caf5"
+                                    color: root.isMicMuted ? "#ffffff" : Components.Theme.fg
                                     font.pixelSize: 15
                                     font.bold: true
                                 }
                                 Text {
                                     text: root.isMicMuted ? "Muted (Mic Off)" : "Active / Live"
-                                    color: root.isMicMuted ? "#f7768e" : "#9ece6a"
+                                    color: root.isMicMuted ? Components.Theme.danger : Components.Theme.success
                                     font.pixelSize: 13
                                 }
                             }
@@ -792,8 +863,8 @@ Item {
                         width: (parent.width - 14) / 2
                         height: 74
                         radius: 14
-                        color: shotMouse.containsMouse ? "#24283b" : "#1f2335"
-                        border.color: shotMouse.containsMouse ? "#bb9af7" : "#292e42"
+                        color: shotMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                        border.color: shotMouse.containsMouse ? Components.Theme.accentSecondary : Components.Theme.surfaceHover
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -810,12 +881,12 @@ Item {
                                 width: 48
                                 height: 48
                                 radius: 12
-                                color: "#16161e"
+                                color: Components.Theme.bg
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     text: "󰹑"
-                                    color: "#bb9af7"
+                                    color: Components.Theme.accentSecondary
                                     font.pixelSize: 24
                                     anchors.centerIn: parent
                                 }
@@ -828,13 +899,13 @@ Item {
 
                                 Text {
                                     text: "Screenshot"
-                                    color: "#c0caf5"
+                                    color: Components.Theme.fg
                                     font.pixelSize: 15
                                     font.bold: true
                                 }
                                 Text {
                                     text: "Select area capture"
-                                    color: "#565f89"
+                                    color: Components.Theme.fgMuted
                                     font.pixelSize: 13
                                 }
                             }
@@ -857,9 +928,9 @@ Item {
                         height: 74
                         radius: 14
                         color: root.recordStatus !== "idle"
-                               ? (recTileMouse.containsMouse ? "#6d2938" : "#5c1d29")
-                               : (recTileMouse.containsMouse ? "#24283b" : "#1f2335")
-                        border.color: root.recordStatus !== "idle" ? "#f7768e" : "#292e42"
+                               ? (recTileMouse.containsMouse ? Qt.darker(Components.Theme.danger, 2.0) : Qt.darker(Components.Theme.danger, 2.5))
+                               : (recTileMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface)
+                        border.color: root.recordStatus !== "idle" ? Components.Theme.danger : Components.Theme.surfaceHover
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -876,12 +947,12 @@ Item {
                                 width: 48
                                 height: 48
                                 radius: 12
-                                color: root.recordStatus !== "idle" ? "#f7768e" : "#16161e"
+                                color: root.recordStatus !== "idle" ? Components.Theme.danger : Components.Theme.bg
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     text: "󰻃"
-                                    color: root.recordStatus !== "idle" ? "#1a1b26" : "#f7768e"
+                                    color: root.recordStatus !== "idle" ? Components.Theme.bg : Components.Theme.danger
                                     font.pixelSize: 24
                                     anchors.centerIn: parent
                                 }
@@ -894,13 +965,13 @@ Item {
 
                                 Text {
                                     text: "Screen Record"
-                                    color: root.recordStatus !== "idle" ? "#ffffff" : "#c0caf5"
+                                    color: root.recordStatus !== "idle" ? "#ffffff" : Components.Theme.fg
                                     font.pixelSize: 15
                                     font.bold: true
                                 }
                                 Text {
                                     text: root.recordStatus !== "idle" ? "Recording Active!" : "Select region to record"
-                                    color: root.recordStatus !== "idle" ? "#f7768e" : "#565f89"
+                                    color: root.recordStatus !== "idle" ? Components.Theme.danger : Components.Theme.fgMuted
                                     font.pixelSize: 13
                                 }
                             }
@@ -923,13 +994,108 @@ Item {
                     }
                 }
 
+                // 1-Click System Themes Studio Banner
+                Rectangle {
+                    width: parent.width
+                    height: 54
+                    radius: 14
+                    color: themeStudioMouse.containsMouse ? Components.Theme.surfaceHover : Components.Theme.surface
+                    border.color: themeStudioMouse.containsMouse ? Components.Theme.accent : Components.Theme.border
+                    border.width: 1
+
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 14
+                        anchors.right: parent.right
+                        anchors.rightMargin: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 14
+
+                        Rectangle {
+                            width: 38
+                            height: 38
+                            radius: 12
+                            color: Components.Theme.accent
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Text {
+                                text: "󰏘"
+                                color: Components.Theme.bg
+                                font.pixelSize: 20
+                                anchors.centerIn: parent
+                            }
+                        }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+                            width: parent.width - 38 - 14 - 30
+
+                            Row {
+                                spacing: 8
+                                Text {
+                                    text: "System Themes"
+                                    color: Components.Theme.fg
+                                    font.pixelSize: 14
+                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Rectangle {
+                                    width: activeThemeBadgeText.implicitWidth + 12
+                                    height: 18
+                                    radius: 9
+                                    color: Components.Theme.surfaceHover
+                                    border.color: Components.Theme.accent
+                                    border.width: 1
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Text {
+                                        id: activeThemeBadgeText
+                                        text: root.activeThemeName
+                                        color: Components.Theme.accent
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                        anchors.centerIn: parent
+                                    }
+                                }
+                            }
+                            Text {
+                                text: "1-Click Whole-System Theme Switcher (7 Curated Presets)"
+                                color: Components.Theme.fgMuted
+                                font.pixelSize: 11
+                            }
+                        }
+
+                        Text {
+                            text: "󰅂"
+                            color: themeStudioMouse.containsMouse ? Components.Theme.accent : Components.Theme.fgMuted
+                            font.pixelSize: 18
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    MouseArea {
+                        id: themeStudioMouse
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.isSettingsOpen = false
+                            root.isThemesOpen = true
+                            themesListProcess.running = true
+                        }
+                    }
+                }
+
                 // Wallpaper & Canvas Setter Banner (Full width)
                 Rectangle {
                     width: parent.width
                     height: 52
                     radius: 12
-                    color: wallTileMouse.containsMouse ? "#24283b" : "#1f2335"
-                    border.color: wallTileMouse.containsMouse ? "#7aa2f7" : "#292e42"
+                    color: wallTileMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                    border.color: wallTileMouse.containsMouse ? Components.Theme.accent : Components.Theme.surfaceHover
                     border.width: 1
 
                     Behavior on color { ColorAnimation { duration: 150 } }
@@ -946,12 +1112,12 @@ Item {
                             width: 38
                             height: 38
                             radius: 10
-                            color: "#16161e"
+                            color: Components.Theme.bg
                             anchors.verticalCenter: parent.verticalCenter
 
                             Text {
                                 text: "󰸉"
-                                color: "#7aa2f7"
+                                color: Components.Theme.accent
                                 font.pixelSize: 20
                                 anchors.centerIn: parent
                             }
@@ -964,20 +1130,20 @@ Item {
 
                             Text {
                                 text: "Web Wallpaper Studio"
-                                color: "#c0caf5"
+                                color: Components.Theme.fg
                                 font.pixelSize: 14
                                 font.bold: true
                             }
                             Text {
                                 text: "HTML5/WebGL Themes, Live Effects & FX"
-                                color: "#565f89"
+                                color: Components.Theme.fgMuted
                                 font.pixelSize: 12
                             }
                         }
 
                         Text {
                             text: "󰅂"
-                            color: wallTileMouse.containsMouse ? "#7aa2f7" : "#565f89"
+                            color: wallTileMouse.containsMouse ? Components.Theme.accent : Components.Theme.fgMuted
                             font.pixelSize: 18
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -998,11 +1164,111 @@ Item {
                     }
                 }
 
+                // 1-Click Bar Layout / Style Selector (Floating | Islands | Normal | Compact)
+                Rectangle {
+                    width: parent.width
+                    height: 56
+                    radius: 14
+                    color: Components.Theme.surface
+                    border.color: Components.Theme.border
+                    border.width: 1
+
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 7
+                        spacing: 5
+
+                        Row {
+                            spacing: 6
+                            anchors.left: parent.left
+                            anchors.leftMargin: 4
+
+                            Text {
+                                text: "󰓩"
+                                color: Components.Theme.accent
+                                font.pixelSize: 13
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "Bar Style"
+                                color: Components.Theme.fg
+                                font.pixelSize: 12
+                                font.bold: true
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "• " + (Components.Theme.barStyle === "floating" ? "Floating Neo-Glass" : (Components.Theme.barStyle === "islands" ? "Split 3-Islands" : (Components.Theme.barStyle === "normal" ? "Classic Edge-to-Edge" : "Compact Minimal")))
+                                color: Components.Theme.accentSecondary
+                                font.pixelSize: 11
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        Row {
+                            width: parent.width
+                            spacing: 6
+
+                            Repeater {
+                                model: [
+                                    { id: "floating", label: "Floating", icon: "󰹬" },
+                                    { id: "islands", label: "Islands", icon: "󰮊" },
+                                    { id: "normal", label: "Normal", icon: "󰵊" },
+                                    { id: "compact", label: "Compact", icon: "󰍹" }
+                                ]
+
+                                delegate: Rectangle {
+                                    width: (parent.width - (3 * 6)) / 4
+                                    height: 25
+                                    radius: 7
+                                    color: Components.Theme.barStyle === modelData.id
+                                           ? Components.Theme.accent
+                                           : (barOptMouse.containsMouse ? Components.Theme.surfaceHover : Components.Theme.surfaceCard)
+                                    border.color: Components.Theme.barStyle === modelData.id
+                                                  ? Components.Theme.accent
+                                                  : Components.Theme.border
+                                    border.width: 1
+
+                                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        Text {
+                                            text: modelData.icon
+                                            color: Components.Theme.barStyle === modelData.id ? Components.Theme.bg : (barOptMouse.containsMouse ? Components.Theme.accent : Components.Theme.fg)
+                                            font.pixelSize: 11
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Text {
+                                            text: modelData.label
+                                            color: Components.Theme.barStyle === modelData.id ? Components.Theme.bg : Components.Theme.fg
+                                            font.pixelSize: 10
+                                            font.bold: Components.Theme.barStyle === modelData.id
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: barOptMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Components.Theme.setBarStyle(modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Divider
                 Rectangle {
                     width: parent.width
                     height: 1
-                    color: "#24283b"
+                    color: Components.Theme.bgAlt
                 }
 
                 // 2. Interactive Brightness Slider (Before Volume)
@@ -1013,7 +1279,7 @@ Item {
                     Text {
                         id: brightIcon
                         text: "󰃠"
-                        color: "#e0af68"
+                        color: Components.Theme.warning
                         font.pixelSize: 24
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
@@ -1022,7 +1288,7 @@ Item {
                     Text {
                         id: brightVal
                         text: root.brightnessLevel + "%"
-                        color: "#e0af68"
+                        color: Components.Theme.warning
                         font.pixelSize: 15
                         font.bold: true
                         anchors.right: parent.right
@@ -1041,13 +1307,13 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         height: 10
                         radius: 5
-                        color: "#16161e"
+                        color: Components.Theme.bg
 
                         Rectangle {
                             width: parent.width * (root.brightnessLevel / 100)
                             height: parent.height
                             radius: 5
-                            color: "#e0af68"
+                            color: Components.Theme.warning
                         }
 
                         // Slider Knob
@@ -1057,7 +1323,7 @@ Item {
                             width: 20
                             height: 20
                             radius: 10
-                            color: "#e0af68"
+                            color: Components.Theme.warning
                             border.color: "#ffffff"
                             border.width: 2
                         }
@@ -1091,7 +1357,7 @@ Item {
                     Text {
                         id: volIcon
                         text: root.isAudioMuted ? "󰖁" : (root.volumeLevel > 50 ? "󰕾" : "󰕿")
-                        color: root.isAudioMuted ? "#f7768e" : "#7aa2f7"
+                        color: root.isAudioMuted ? Components.Theme.danger : Components.Theme.accent
                         font.pixelSize: 24
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
@@ -1109,7 +1375,7 @@ Item {
                     Text {
                         id: volVal
                         text: root.volumeLevel + "%"
-                        color: "#7dcfff"
+                        color: Components.Theme.accentTertiary
                         font.pixelSize: 15
                         font.bold: true
                         anchors.right: parent.right
@@ -1128,13 +1394,13 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         height: 10
                         radius: 5
-                        color: "#16161e"
+                        color: Components.Theme.bg
 
                         Rectangle {
                             width: parent.width * (root.volumeLevel / 100)
                             height: parent.height
                             radius: 5
-                            color: root.isAudioMuted ? "#565f89" : "#7aa2f7"
+                            color: root.isAudioMuted ? Components.Theme.fgMuted : Components.Theme.accent
                         }
 
                         // Slider Knob
@@ -1144,7 +1410,7 @@ Item {
                             width: 20
                             height: 20
                             radius: 10
-                            color: root.isAudioMuted ? "#565f89" : "#7aa2f7"
+                            color: root.isAudioMuted ? Components.Theme.fgMuted : Components.Theme.accent
                             border.color: "#ffffff"
                             border.width: 2
                         }
@@ -1174,7 +1440,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     height: 1
-                    color: "#24283b"
+                    color: Components.Theme.bgAlt
                 }
 
                 // 4. Bottom System Action Buttons (Including Shutdown and Sudo Shutdown Now!)
@@ -1188,15 +1454,15 @@ Item {
                         width: (parent.width - 20) / 3
                         height: 44
                         radius: 10
-                        color: reloadMouse.containsMouse ? "#24283b" : "#1f2335"
-                        border.color: reloadMouse.containsMouse ? "#7dcfff" : "#292e42"
+                        color: reloadMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                        border.color: reloadMouse.containsMouse ? Components.Theme.accentTertiary : Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 8
-                            Text { text: "󰑐"; color: "#7dcfff"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Refresh Niri"; color: "#c0caf5"; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "󰑐"; color: Components.Theme.accentTertiary; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Refresh Niri"; color: Components.Theme.fg; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         }
 
                         MouseArea {
@@ -1205,7 +1471,7 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.isSettingsOpen = false
-                                Quickshell.execDetached(["sh", "-c", "killall qs; qs -d -p $HOME/DARK_NIRI/quickshell/shell.qml & notify-send 'Niri' 'Bar & Environment Reloaded' -i view-refresh"])
+                                Quickshell.execDetached(["sh", "-c", "$HOME/DARK_NIRI/quickshell/reload-shell.sh"])
                             }
                         }
                     }
@@ -1215,15 +1481,15 @@ Item {
                         width: (parent.width - 20) / 3
                         height: 44
                         radius: 10
-                        color: lockMouse.containsMouse ? "#24283b" : "#1f2335"
-                        border.color: lockMouse.containsMouse ? "#7aa2f7" : "#292e42"
+                        color: lockMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                        border.color: lockMouse.containsMouse ? Components.Theme.accent : Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 8
-                            Text { text: "󰌾"; color: "#7aa2f7"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Lock Screen"; color: "#c0caf5"; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "󰌾"; color: Components.Theme.accent; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Lock Screen"; color: Components.Theme.fg; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         }
 
                         MouseArea {
@@ -1242,15 +1508,15 @@ Item {
                         width: (parent.width - 20) / 3
                         height: 44
                         radius: 10
-                        color: exitMouse.containsMouse ? "#24283b" : "#1f2335"
-                        border.color: exitMouse.containsMouse ? "#bb9af7" : "#292e42"
+                        color: exitMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                        border.color: exitMouse.containsMouse ? Components.Theme.accentSecondary : Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 8
-                            Text { text: "󰍃"; color: "#bb9af7"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Log Out"; color: "#c0caf5"; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "󰍃"; color: Components.Theme.accentSecondary; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Log Out"; color: Components.Theme.fg; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         }
 
                         MouseArea {
@@ -1269,15 +1535,15 @@ Item {
                         width: (parent.width - 20) / 3
                         height: 44
                         radius: 10
-                        color: rebootMouse.containsMouse ? "#24283b" : "#1f2335"
-                        border.color: rebootMouse.containsMouse ? "#e0af68" : "#292e42"
+                        color: rebootMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                        border.color: rebootMouse.containsMouse ? Components.Theme.warning : Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 8
-                            Text { text: "󰜉"; color: "#e0af68"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Restart"; color: "#c0caf5"; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "󰜉"; color: Components.Theme.warning; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Restart"; color: Components.Theme.fg; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         }
 
                         MouseArea {
@@ -1296,15 +1562,15 @@ Item {
                         width: (parent.width - 20) / 3
                         height: 44
                         radius: 10
-                        color: shutMouse.containsMouse ? "#3d212c" : "#1f2335"
-                        border.color: shutMouse.containsMouse ? "#f7768e" : "#292e42"
+                        color: shutMouse.containsMouse ? Qt.darker(Components.Theme.danger, 3.0) : Components.Theme.surface
+                        border.color: shutMouse.containsMouse ? Components.Theme.danger : Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 8
-                            Text { text: "󰐥"; color: "#f7768e"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Shutdown"; color: "#c0caf5"; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "󰐥"; color: Components.Theme.danger; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Shutdown"; color: Components.Theme.fg; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         }
 
                         MouseArea {
@@ -1323,8 +1589,8 @@ Item {
                         width: (parent.width - 20) / 3
                         height: 44
                         radius: 10
-                        color: sudoShutMouse.containsMouse ? "#f7768e" : "#2e1a24"
-                        border.color: "#f7768e"
+                        color: sudoShutMouse.containsMouse ? Components.Theme.danger : Qt.darker(Components.Theme.danger, 3.5)
+                        border.color: Components.Theme.danger
                         border.width: 1
 
                         Row {
@@ -1332,13 +1598,13 @@ Item {
                             spacing: 8
                             Text {
                                 text: "󰐦"
-                                color: sudoShutMouse.containsMouse ? "#1a1b26" : "#f7768e"
+                                color: sudoShutMouse.containsMouse ? Components.Theme.bg : Components.Theme.danger
                                 font.pixelSize: 16
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
                                 text: "Sudo Off Now"
-                                color: sudoShutMouse.containsMouse ? "#1a1b26" : "#f7768e"
+                                color: sudoShutMouse.containsMouse ? Components.Theme.bg : Components.Theme.danger
                                 font.pixelSize: 13
                                 font.bold: true
                                 anchors.verticalCenter: parent.verticalCenter
@@ -1360,12 +1626,381 @@ Item {
         }
     }
 
+    // Dedicated Whole-System Theme Studio Modal (Anchored Top-Right, Slide Animation)
+    PopupWindow {
+        id: themesPopup
+        anchor.window: barWindow
+        anchor.rect.x: Math.round(barWindow.width - 560 - 20)
+        anchor.rect.y: Math.round(barWindow.height + 4)
+        anchor.rect.width: 560
+        anchor.rect.height: 1
+
+        implicitWidth: 560
+        implicitHeight: 660
+        visible: root.isThemesOpen
+        color: "transparent"
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 20
+            color: Components.Theme.bgAlpha
+            border.color: Components.Theme.border
+            border.width: 1
+
+            // Top-right slide in animation
+            transform: Translate {
+                x: root.isThemesOpen ? 0 : 30
+                y: root.isThemesOpen ? 0 : -15
+                Behavior on x { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            }
+            opacity: root.isThemesOpen ? 1.0 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 180 } }
+
+            Column {
+                anchors.fill: parent
+                anchors.margins: 18
+                spacing: 12
+
+                // Header
+                Item {
+                    width: parent.width
+                    height: 40
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 12
+
+                        Rectangle {
+                            width: 38
+                            height: 38
+                            radius: 12
+                            color: Components.Theme.surface
+                            border.color: Components.Theme.accent
+                            border.width: 1
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Text {
+                                text: "󰏘"
+                                color: Components.Theme.accent
+                                font.pixelSize: 22
+                                anchors.centerIn: parent
+                            }
+                        }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+
+                            Text {
+                                text: "Theme Studio"
+                                color: Components.Theme.fg
+                                font.pixelSize: 18
+                                font.bold: true
+                            }
+                            Text {
+                                text: "1-Click Whole Dotfiles Theme Orchestrator"
+                                color: Components.Theme.fgMuted
+                                font.pixelSize: 12
+                            }
+                        }
+                    }
+
+                    // Close Button
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 32
+                        height: 32
+                        radius: 16
+                        color: closeThemeMouse.containsMouse ? Components.Theme.surfaceHover : Components.Theme.surface
+                        border.color: Components.Theme.border
+                        border.width: 1
+
+                        Text {
+                            text: "󰅖"
+                            color: Components.Theme.fg
+                            font.pixelSize: 16
+                            anchors.centerIn: parent
+                        }
+
+                        MouseArea {
+                            id: closeThemeMouse
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.isThemesOpen = false
+                        }
+                    }
+                }
+
+                // Subtitle Info Banner
+                Rectangle {
+                    width: parent.width
+                    height: 38
+                    radius: 10
+                    color: Components.Theme.surface
+                    border.color: Components.Theme.border
+                    border.width: 1
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 8
+
+                        Text {
+                            text: "󰄬"
+                            color: Components.Theme.accent
+                            font.pixelSize: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: "Synchronizes QuickShell, Niri, Rofi, Fuzzel, Mako & Wallpaper"
+                            color: Components.Theme.fgSecondary
+                            font.pixelSize: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+
+                // Bar Style Layout Switcher in Theme Studio
+                Rectangle {
+                    width: parent.width
+                    height: 48
+                    radius: 10
+                    color: Components.Theme.surface
+                    border.color: Components.Theme.border
+                    border.width: 1
+
+                    Row {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 10
+
+                        Row {
+                            spacing: 6
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 86
+
+                            Text {
+                                text: "󰓩"
+                                color: Components.Theme.accent
+                                font.pixelSize: 14
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "Bar Style"
+                                color: Components.Theme.fg
+                                font.pixelSize: 12
+                                font.bold: true
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - 96
+                            spacing: 6
+
+                            Repeater {
+                                model: [
+                                    { id: "floating", label: "Floating", icon: "󰹬" },
+                                    { id: "islands", label: "Islands", icon: "󰮊" },
+                                    { id: "normal", label: "Normal", icon: "󰵊" },
+                                    { id: "compact", label: "Compact", icon: "󰍹" }
+                                ]
+
+                                delegate: Rectangle {
+                                    width: (parent.width - (3 * 6)) / 4
+                                    height: 30
+                                    radius: 8
+                                    color: Components.Theme.barStyle === modelData.id
+                                           ? Components.Theme.accent
+                                           : (themeBarOptMouse.containsMouse ? Components.Theme.surfaceHover : Components.Theme.surfaceCard)
+                                    border.color: Components.Theme.barStyle === modelData.id
+                                                  ? Components.Theme.accent
+                                                  : Components.Theme.border
+                                    border.width: 1
+
+                                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        Text {
+                                            text: modelData.icon
+                                            color: Components.Theme.barStyle === modelData.id ? Components.Theme.bg : (themeBarOptMouse.containsMouse ? Components.Theme.accent : Components.Theme.fg)
+                                            font.pixelSize: 11
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Text {
+                                            text: modelData.label
+                                            color: Components.Theme.barStyle === modelData.id ? Components.Theme.bg : Components.Theme.fg
+                                            font.pixelSize: 10
+                                            font.bold: Components.Theme.barStyle === modelData.id
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: themeBarOptMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Components.Theme.setBarStyle(modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Theme Presets List
+                ListView {
+                    width: parent.width
+                    height: 460
+                    clip: true
+                    spacing: 8
+                    model: root.themesList
+
+                    delegate: Rectangle {
+                        width: parent.width
+                        height: 60
+                        radius: 12
+                        color: modelData.is_active ? Components.Theme.surfaceHover : (themeItemMouse.containsMouse ? Components.Theme.surfaceCard : Components.Theme.surface)
+                        border.color: modelData.is_active ? Components.Theme.accent : (themeItemMouse.containsMouse ? Components.Theme.accentSecondary : Components.Theme.border)
+                        border.width: modelData.is_active ? 2 : 1
+
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 12
+
+                            // Color Icon
+                            Rectangle {
+                                width: 38
+                                height: 38
+                                radius: 10
+                                color: modelData.bg
+                                border.color: modelData.is_active ? modelData.accent : modelData.border
+                                border.width: 2
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Text {
+                                    text: modelData.is_active ? "󰄬" : "󰏘"
+                                    color: modelData.accent
+                                    font.pixelSize: modelData.is_active ? 20 : 16
+                                    anchors.centerIn: parent
+                                }
+                            }
+
+                            // Info
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                width: parent.width - 240
+
+                                Row {
+                                    spacing: 6
+                                    Text {
+                                        text: modelData.name
+                                        color: modelData.is_active ? modelData.accent : Components.Theme.fg
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                    }
+                                    Rectangle {
+                                        visible: modelData.is_active
+                                        width: 48
+                                        height: 16
+                                        radius: 8
+                                        color: modelData.accent
+                                        Text {
+                                            text: "ACTIVE"
+                                            color: modelData.bg
+                                            font.pixelSize: 9
+                                            font.bold: true
+                                            anchors.centerIn: parent
+                                        }
+                                    }
+                                }
+                                Text {
+                                    text: modelData.description
+                                    color: Components.Theme.fgMuted
+                                    font.pixelSize: 11
+                                    elide: Text.ElideRight
+                                    width: parent.width
+                                }
+                            }
+
+                            // Swatches
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 4
+
+                                Rectangle { width: 16; height: 16; radius: 8; color: modelData.bg; border.color: Components.Theme.border; border.width: 1 }
+                                Rectangle { width: 16; height: 16; radius: 8; color: modelData.surface; border.color: Components.Theme.border; border.width: 1 }
+                                Rectangle { width: 16; height: 16; radius: 8; color: modelData.accent; border.color: "#ffffff"; border.width: 1 }
+                                Rectangle { width: 16; height: 16; radius: 8; color: modelData.accent_secondary; border.color: "#ffffff"; border.width: 1 }
+                            }
+
+                            // Apply Button
+                            Rectangle {
+                                width: 68
+                                height: 30
+                                radius: 8
+                                color: modelData.is_active ? modelData.accent : (applyMouse.containsMouse ? Components.Theme.surfaceHover : Components.Theme.surface)
+                                border.color: modelData.is_active ? modelData.accent : Components.Theme.border
+                                border.width: 1
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Text {
+                                    text: modelData.is_active ? "Applied" : "Apply"
+                                    color: modelData.is_active ? modelData.bg : Components.Theme.fg
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                    anchors.centerIn: parent
+                                }
+
+                                MouseArea {
+                                    id: applyMouse
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/theme-manager", "apply", modelData.id])
+                                        themesListProcess.running = true
+                                        Components.Theme.refresh()
+                                    }
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: themeItemMouse
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/theme-manager", "apply", modelData.id])
+                                themesListProcess.running = true
+                                Components.Theme.refresh()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Dedicated Notification Center Modal (Anchored Top-Right, Slide Animation)
     PopupWindow {
         id: notifPopup
         anchor.window: barWindow
         anchor.rect.x: Math.round(barWindow.width - 540 - 20)
-        anchor.rect.y: 55
+        anchor.rect.y: Math.round(barWindow.height + 4)
         anchor.rect.width: 540
         anchor.rect.height: 1
 
@@ -1377,8 +2012,8 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: 20
-            color: "#F51a1b26"
-            border.color: "#3b4261"
+            color: Components.Theme.bgAlpha
+            border.color: Components.Theme.border
             border.width: 1
 
             // Top-right slide in animation
@@ -1406,14 +2041,14 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 12
 
-                        Text { text: "󰂚"; color: "#7aa2f7"; font.pixelSize: 24; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "󰂚"; color: Components.Theme.accent; font.pixelSize: 24; anchors.verticalCenter: parent.verticalCenter }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
-                            Text { text: "Notifications"; color: "#c0caf5"; font.pixelSize: 16; font.bold: true }
+                            Text { text: "Notifications"; color: Components.Theme.fg; font.pixelSize: 16; font.bold: true }
                             Text {
                                 text: root.notifications.length > 0 ? (root.notifications.length + " alerts in history") : "No new notifications"
-                                color: "#565f89"
+                                color: Components.Theme.fgMuted
                                 font.pixelSize: 12
                             }
                         }
@@ -1430,8 +2065,8 @@ Item {
                             width: 88
                             height: 32
                             radius: 8
-                            color: clearAllMouse.containsMouse ? "#f7768e" : "#1f2335"
-                            border.color: clearAllMouse.containsMouse ? "#f7768e" : "#3b4261"
+                            color: clearAllMouse.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                            border.color: clearAllMouse.containsMouse ? Components.Theme.danger : Components.Theme.border
                             border.width: 1
 
                             Row {
@@ -1439,12 +2074,12 @@ Item {
                                 spacing: 4
                                 Text {
                                     text: "󰎟"
-                                    color: clearAllMouse.containsMouse ? "#1a1b26" : "#f7768e"
+                                    color: clearAllMouse.containsMouse ? Components.Theme.bg : Components.Theme.danger
                                     font.pixelSize: 12
                                 }
                                 Text {
                                     text: "Clear All"
-                                    color: clearAllMouse.containsMouse ? "#1a1b26" : "#c0caf5"
+                                    color: clearAllMouse.containsMouse ? Components.Theme.bg : Components.Theme.fg
                                     font.pixelSize: 11
                                     font.bold: true
                                 }
@@ -1466,11 +2101,11 @@ Item {
                             width: 32
                             height: 32
                             radius: 16
-                            color: notifCloseMouse.containsMouse ? "#f7768e" : "#1f2335"
-                            border.color: notifCloseMouse.containsMouse ? "#f7768e" : "#3b4261"
+                            color: notifCloseMouse.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                            border.color: notifCloseMouse.containsMouse ? Components.Theme.danger : Components.Theme.border
                             border.width: 1
 
-                            Text { text: "󰅖"; color: notifCloseMouse.containsMouse ? "#1a1b26" : "#c0caf5"; font.pixelSize: 14; anchors.centerIn: parent }
+                            Text { text: "󰅖"; color: notifCloseMouse.containsMouse ? Components.Theme.bg : Components.Theme.fg; font.pixelSize: 14; anchors.centerIn: parent }
 
                             MouseArea {
                                 id: notifCloseMouse
@@ -1483,7 +2118,7 @@ Item {
                 }
 
                 // Divider
-                Rectangle { width: parent.width; height: 1; color: "#24283b" }
+                Rectangle { width: parent.width; height: 1; color: Components.Theme.bgAlt }
 
                 // Empty State View
                 Item {
@@ -1494,9 +2129,9 @@ Item {
                     Column {
                         anchors.centerIn: parent
                         spacing: 12
-                        Text { text: "󰂜"; color: "#3b4261"; font.pixelSize: 52; anchors.horizontalCenter: parent.horizontalCenter }
-                        Text { text: "No Notifications"; color: "#c0caf5"; font.pixelSize: 15; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
-                        Text { text: "You're all caught up!"; color: "#565f89"; font.pixelSize: 13; anchors.horizontalCenter: parent.horizontalCenter }
+                        Text { text: "󰂜"; color: Components.Theme.border; font.pixelSize: 52; anchors.horizontalCenter: parent.horizontalCenter }
+                        Text { text: "No Notifications"; color: Components.Theme.fg; font.pixelSize: 15; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
+                        Text { text: "You're all caught up!"; color: Components.Theme.fgMuted; font.pixelSize: 13; anchors.horizontalCenter: parent.horizontalCenter }
                     }
                 }
 
@@ -1520,8 +2155,8 @@ Item {
                                 width: notifCol.width
                                 height: notifCardCol.implicitHeight + 20
                                 radius: 12
-                                color: itemHover.containsMouse ? "#24283b" : "#16161e"
-                                border.color: itemHover.containsMouse ? "#7aa2f7" : "#292e42"
+                                color: itemHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.bg
+                                border.color: itemHover.containsMouse ? Components.Theme.accent : Components.Theme.surfaceHover
                                 border.width: 1
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
@@ -1542,14 +2177,14 @@ Item {
                                             width: appTxt.implicitWidth + 10
                                             height: 18
                                             radius: 4
-                                            color: "#1f2335"
-                                            border.color: "#3b4261"
+                                            color: Components.Theme.surface
+                                            border.color: Components.Theme.border
                                             border.width: 1
 
                                             Text {
                                                 id: appTxt
                                                 text: modelData.app
-                                                color: "#7dcfff"
+                                                color: Components.Theme.accentTertiary
                                                 font.pixelSize: 10
                                                 font.bold: true
                                                 anchors.centerIn: parent
@@ -1558,7 +2193,7 @@ Item {
 
                                         Text {
                                             text: modelData.summary
-                                            color: "#c0caf5"
+                                            color: Components.Theme.fg
                                             font.pixelSize: 13
                                             font.bold: true
                                             elide: Text.ElideRight
@@ -1570,7 +2205,7 @@ Item {
                                     Text {
                                         visible: modelData.body !== ""
                                         text: modelData.body
-                                        color: "#9aa5ce"
+                                        color: Components.Theme.fgSecondary
                                         font.pixelSize: 12
                                         wrapMode: Text.WordWrap
                                         width: notifCardCol.width
@@ -1588,13 +2223,13 @@ Item {
                                     width: 28
                                     height: 28
                                     radius: 14
-                                    color: delHover.containsMouse ? "#f7768e" : "#1f2335"
-                                    border.color: delHover.containsMouse ? "#f7768e" : "#3b4261"
+                                    color: delHover.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                                    border.color: delHover.containsMouse ? Components.Theme.danger : Components.Theme.border
                                     border.width: 1
 
                                     Text {
                                         text: "󰅖"
-                                        color: delHover.containsMouse ? "#1a1b26" : "#565f89"
+                                        color: delHover.containsMouse ? Components.Theme.bg : Components.Theme.fgMuted
                                         font.pixelSize: 12
                                         anchors.centerIn: parent
                                     }
@@ -1630,7 +2265,7 @@ Item {
         id: wifiPopup
         anchor.window: barWindow
         anchor.rect.x: Math.round(barWindow.width - 540 - 20)
-        anchor.rect.y: 55
+        anchor.rect.y: Math.round(barWindow.height + 4)
         anchor.rect.width: 540
         anchor.rect.height: 1
 
@@ -1642,8 +2277,8 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: 20
-            color: "#F51a1b26"
-            border.color: "#3b4261"
+            color: Components.Theme.bgAlpha
+            border.color: Components.Theme.border
             border.width: 1
 
             // Top-right slide in animation
@@ -1671,12 +2306,12 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 12
 
-                        Text { text: "󰤨"; color: "#7aa2f7"; font.pixelSize: 24; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "󰤨"; color: Components.Theme.accent; font.pixelSize: 24; anchors.verticalCenter: parent.verticalCenter }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
-                            Text { text: "Wi-Fi Networks"; color: "#c0caf5"; font.pixelSize: 16; font.bold: true }
-                            Text { text: "Manage & connect to wireless networks"; color: "#565f89"; font.pixelSize: 12 }
+                            Text { text: "Wi-Fi Networks"; color: Components.Theme.fg; font.pixelSize: 16; font.bold: true }
+                            Text { text: "Manage & connect to wireless networks"; color: Components.Theme.fgMuted; font.pixelSize: 12 }
                         }
                     }
 
@@ -1690,8 +2325,8 @@ Item {
                             width: 105
                             height: 34
                             radius: 17
-                            color: root.wifiEnabled ? "#7aa2f7" : "#1f2335"
-                            border.color: root.wifiEnabled ? "#7aa2f7" : "#3b4261"
+                            color: root.wifiEnabled ? Components.Theme.accent : Components.Theme.surface
+                            border.color: root.wifiEnabled ? Components.Theme.accent : Components.Theme.border
                             border.width: 1
 
                             Row {
@@ -1699,7 +2334,7 @@ Item {
                                 spacing: 4
                                 Text {
                                     text: root.wifiEnabled ? "󰤨  Wi-Fi ON" : "󰤭  Wi-Fi OFF"
-                                    color: root.wifiEnabled ? "#1a1b26" : "#565f89"
+                                    color: root.wifiEnabled ? Components.Theme.bg : Components.Theme.fgMuted
                                     font.pixelSize: 11
                                     font.bold: true
                                 }
@@ -1720,11 +2355,11 @@ Item {
                             width: 34
                             height: 34
                             radius: 17
-                            color: wifiRescanMouse.containsMouse ? "#24283b" : "#1f2335"
-                            border.color: wifiRescanMouse.containsMouse ? "#7aa2f7" : "#3b4261"
+                            color: wifiRescanMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                            border.color: wifiRescanMouse.containsMouse ? Components.Theme.accent : Components.Theme.border
                             border.width: 1
 
-                            Text { text: "󰑐"; color: wifiRescanMouse.containsMouse ? "#7aa2f7" : "#c0caf5"; font.pixelSize: 14; anchors.centerIn: parent }
+                            Text { text: "󰑐"; color: wifiRescanMouse.containsMouse ? Components.Theme.accent : Components.Theme.fg; font.pixelSize: 14; anchors.centerIn: parent }
 
                             MouseArea {
                                 id: wifiRescanMouse
@@ -1742,11 +2377,11 @@ Item {
                             width: 34
                             height: 34
                             radius: 17
-                            color: wifiCloseMouse.containsMouse ? "#f7768e" : "#1f2335"
-                            border.color: wifiCloseMouse.containsMouse ? "#f7768e" : "#3b4261"
+                            color: wifiCloseMouse.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                            border.color: wifiCloseMouse.containsMouse ? Components.Theme.danger : Components.Theme.border
                             border.width: 1
 
-                            Text { text: "󰅖"; color: wifiCloseMouse.containsMouse ? "#1a1b26" : "#c0caf5"; font.pixelSize: 14; anchors.centerIn: parent }
+                            Text { text: "󰅖"; color: wifiCloseMouse.containsMouse ? Components.Theme.bg : Components.Theme.fg; font.pixelSize: 14; anchors.centerIn: parent }
 
                             MouseArea {
                                 id: wifiCloseMouse
@@ -1762,7 +2397,7 @@ Item {
                 }
 
                 // Divider
-                Rectangle { width: parent.width; height: 1; color: "#24283b" }
+                Rectangle { width: parent.width; height: 1; color: Components.Theme.bgAlt }
 
                 // Scrollable Available Networks List
                 Flickable {
@@ -1784,9 +2419,9 @@ Item {
                                 height: 60
                                 radius: 12
                                 color: modelData.connected
-                                       ? "#253456"
-                                       : (netHover.containsMouse ? "#24283b" : "#16161e")
-                                border.color: modelData.connected ? "#7aa2f7" : "#292e42"
+                                       ? Qt.darker(Components.Theme.accent, 2.5)
+                                       : (netHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.bg)
+                                border.color: modelData.connected ? Components.Theme.accent : Components.Theme.surfaceHover
                                 border.width: modelData.connected ? 2 : 1
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
@@ -1800,7 +2435,7 @@ Item {
                                     // Signal Icon
                                     Text {
                                         text: modelData.signal > 75 ? "󰤨" : (modelData.signal > 50 ? "󰤥" : (modelData.signal > 25 ? "󰤢" : "󰤟"))
-                                        color: modelData.connected ? "#7dcfff" : "#7aa2f7"
+                                        color: modelData.connected ? Components.Theme.accentTertiary : Components.Theme.accent
                                         font.pixelSize: 22
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -1814,7 +2449,7 @@ Item {
 
                                             Text {
                                                 text: modelData.ssid
-                                                color: modelData.connected ? "#ffffff" : "#c0caf5"
+                                                color: modelData.connected ? "#ffffff" : Components.Theme.fg
                                                 font.pixelSize: 13
                                                 font.bold: true
                                                 anchors.verticalCenter: parent.verticalCenter
@@ -1826,15 +2461,15 @@ Item {
                                                 width: bandText.implicitWidth + 8
                                                 height: 18
                                                 radius: 4
-                                                color: "#1f2335"
-                                                border.color: "#3b4261"
+                                                color: Components.Theme.surface
+                                                border.color: Components.Theme.border
                                                 border.width: 1
                                                 anchors.verticalCenter: parent.verticalCenter
 
                                                 Text {
                                                     id: bandText
                                                     text: modelData.band || "2.4 GHz"
-                                                    color: "#7aa2f7"
+                                                    color: Components.Theme.accent
                                                     font.pixelSize: 10
                                                     font.bold: true
                                                     anchors.centerIn: parent
@@ -1845,7 +2480,7 @@ Item {
                                             Text {
                                                 visible: modelData.security !== "Open"
                                                 text: "󰌾 " + modelData.security
-                                                color: "#565f89"
+                                                color: Components.Theme.fgMuted
                                                 font.pixelSize: 11
                                                 anchors.verticalCenter: parent.verticalCenter
                                             }
@@ -1856,14 +2491,14 @@ Item {
                                                 width: 68
                                                 height: 18
                                                 radius: 4
-                                                color: "#1d3326"
-                                                border.color: "#9ece6a"
+                                                color: Qt.darker(Components.Theme.success, 3.0)
+                                                border.color: Components.Theme.success
                                                 border.width: 1
                                                 anchors.verticalCenter: parent.verticalCenter
 
                                                 Text {
                                                     text: "󰖩 WPS ON"
-                                                    color: "#9ece6a"
+                                                    color: Components.Theme.success
                                                     font.pixelSize: 10
                                                     font.bold: true
                                                     anchors.centerIn: parent
@@ -1877,7 +2512,7 @@ Item {
                                                   : (modelData.wps
                                                      ? "WPS ON • Tap to connect"
                                                      : (modelData.saved ? "Saved • Signal: " + modelData.signal + "%" : "Available • Signal: " + modelData.signal + "%"))
-                                            color: modelData.connected ? "#7dcfff" : (modelData.wps ? "#9ece6a" : "#565f89")
+                                            color: modelData.connected ? Components.Theme.accentTertiary : (modelData.wps ? Components.Theme.success : Components.Theme.fgMuted)
                                             font.pixelSize: 11
                                         }
                                     }
@@ -1896,13 +2531,13 @@ Item {
                                         width: 82
                                         height: 30
                                         radius: 6
-                                        color: disMouse.containsMouse ? "#f7768e" : "#1f2335"
-                                        border.color: "#f7768e"
+                                        color: disMouse.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                                        border.color: Components.Theme.danger
                                         border.width: 1
 
                                         Text {
                                             text: "Disconnect"
-                                            color: disMouse.containsMouse ? "#1a1b26" : "#f7768e"
+                                            color: disMouse.containsMouse ? Components.Theme.bg : Components.Theme.danger
                                             font.pixelSize: 11
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -1925,13 +2560,13 @@ Item {
                                         width: 64
                                         height: 30
                                         radius: 6
-                                        color: forMouse.containsMouse ? "#f7768e" : "#1f2335"
-                                        border.color: forMouse.containsMouse ? "#f7768e" : "#3b4261"
+                                        color: forMouse.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                                        border.color: forMouse.containsMouse ? Components.Theme.danger : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: "Forget"
-                                            color: forMouse.containsMouse ? "#1a1b26" : "#565f89"
+                                            color: forMouse.containsMouse ? Components.Theme.bg : Components.Theme.fgMuted
                                             font.pixelSize: 11
                                             anchors.centerIn: parent
                                         }
@@ -1953,8 +2588,8 @@ Item {
                                         width: modelData.wps ? 88 : 72
                                         height: 30
                                         radius: 6
-                                        color: connMouse.containsMouse ? (modelData.wps ? "#9ece6a" : "#7aa2f7") : "#1f2335"
-                                        border.color: modelData.wps ? "#9ece6a" : "#7aa2f7"
+                                        color: connMouse.containsMouse ? (modelData.wps ? Components.Theme.success : Components.Theme.accent) : Components.Theme.surface
+                                        border.color: modelData.wps ? Components.Theme.success : Components.Theme.accent
                                         border.width: 1
 
                                         Row {
@@ -1963,12 +2598,12 @@ Item {
                                             Text {
                                                 visible: modelData.wps
                                                 text: "󰖩"
-                                                color: connMouse.containsMouse ? "#1a1b26" : "#9ece6a"
+                                                color: connMouse.containsMouse ? Components.Theme.bg : Components.Theme.success
                                                 font.pixelSize: 11
                                             }
                                             Text {
                                                 text: "Connect"
-                                                color: connMouse.containsMouse ? "#1a1b26" : (modelData.wps ? "#9ece6a" : "#7aa2f7")
+                                                color: connMouse.containsMouse ? Components.Theme.bg : (modelData.wps ? Components.Theme.success : Components.Theme.accent)
                                                 font.pixelSize: 11
                                                 font.bold: true
                                             }
@@ -2020,7 +2655,7 @@ Item {
         id: btPopup
         anchor.window: barWindow
         anchor.rect.x: Math.round(barWindow.width - 540 - 20)
-        anchor.rect.y: 55
+        anchor.rect.y: Math.round(barWindow.height + 4)
         anchor.rect.width: 540
         anchor.rect.height: 1
 
@@ -2032,8 +2667,8 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: 20
-            color: "#F51a1b26"
-            border.color: "#3b4261"
+            color: Components.Theme.bgAlpha
+            border.color: Components.Theme.border
             border.width: 1
 
             // Top-right slide in animation
@@ -2061,12 +2696,12 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 12
 
-                        Text { text: "󰂯"; color: "#7dcfff"; font.pixelSize: 24; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "󰂯"; color: Components.Theme.accentTertiary; font.pixelSize: 24; anchors.verticalCenter: parent.verticalCenter }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
-                            Text { text: "Bluetooth Devices"; color: "#c0caf5"; font.pixelSize: 16; font.bold: true }
-                            Text { text: "Pair, connect, and audio profiles"; color: "#565f89"; font.pixelSize: 12 }
+                            Text { text: "Bluetooth Devices"; color: Components.Theme.fg; font.pixelSize: 16; font.bold: true }
+                            Text { text: "Pair, connect, and audio profiles"; color: Components.Theme.fgMuted; font.pixelSize: 12 }
                         }
                     }
 
@@ -2080,8 +2715,8 @@ Item {
                             width: 120
                             height: 34
                             radius: 17
-                            color: root.isBtOn ? "#7dcfff" : "#1f2335"
-                            border.color: root.isBtOn ? "#7dcfff" : "#3b4261"
+                            color: root.isBtOn ? Components.Theme.accentTertiary : Components.Theme.surface
+                            border.color: root.isBtOn ? Components.Theme.accentTertiary : Components.Theme.border
                             border.width: 1
 
                             Row {
@@ -2089,7 +2724,7 @@ Item {
                                 spacing: 4
                                 Text {
                                     text: root.isBtOn ? "󰂯  BT ON" : "󰂲  BT OFF"
-                                    color: root.isBtOn ? "#1a1b26" : "#565f89"
+                                    color: root.isBtOn ? Components.Theme.bg : Components.Theme.fgMuted
                                     font.pixelSize: 11
                                     font.bold: true
                                 }
@@ -2110,15 +2745,15 @@ Item {
                             width: 65
                             height: 34
                             radius: 17
-                            color: btScanMouse.containsMouse ? "#24283b" : "#1f2335"
-                            border.color: btScanMouse.containsMouse ? "#7dcfff" : "#3b4261"
+                            color: btScanMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                            border.color: btScanMouse.containsMouse ? Components.Theme.accentTertiary : Components.Theme.border
                             border.width: 1
 
                             Row {
                                 anchors.centerIn: parent
                                 spacing: 4
-                                Text { text: "󰑐"; color: "#7dcfff"; font.pixelSize: 13 }
-                                Text { text: "Scan"; color: "#c0caf5"; font.pixelSize: 11; font.bold: true }
+                                Text { text: "󰑐"; color: Components.Theme.accentTertiary; font.pixelSize: 13 }
+                                Text { text: "Scan"; color: Components.Theme.fg; font.pixelSize: 11; font.bold: true }
                             }
 
                             MouseArea {
@@ -2137,11 +2772,11 @@ Item {
                             width: 34
                             height: 34
                             radius: 17
-                            color: btCloseMouse.containsMouse ? "#f7768e" : "#1f2335"
-                            border.color: btCloseMouse.containsMouse ? "#f7768e" : "#3b4261"
+                            color: btCloseMouse.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                            border.color: btCloseMouse.containsMouse ? Components.Theme.danger : Components.Theme.border
                             border.width: 1
 
-                            Text { text: "󰅖"; color: btCloseMouse.containsMouse ? "#1a1b26" : "#c0caf5"; font.pixelSize: 14; anchors.centerIn: parent }
+                            Text { text: "󰅖"; color: btCloseMouse.containsMouse ? Components.Theme.bg : Components.Theme.fg; font.pixelSize: 14; anchors.centerIn: parent }
 
                             MouseArea {
                                 id: btCloseMouse
@@ -2154,7 +2789,7 @@ Item {
                 }
 
                 // Divider
-                Rectangle { width: parent.width; height: 1; color: "#24283b" }
+                Rectangle { width: parent.width; height: 1; color: Components.Theme.bgAlt }
 
                 // Scrollable Bluetooth Devices List
                 Flickable {
@@ -2176,9 +2811,9 @@ Item {
                                 height: (modelData.profiles && modelData.profiles.length > 0 && modelData.connected) ? 92 : 60
                                 radius: 12
                                 color: modelData.connected
-                                       ? "#1e3852"
-                                       : (btDevHover.containsMouse ? "#24283b" : "#16161e")
-                                border.color: modelData.connected ? "#7dcfff" : "#292e42"
+                                       ? Qt.darker(Components.Theme.accentTertiary, 3.0)
+                                       : (btDevHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.bg)
+                                border.color: modelData.connected ? Components.Theme.accentTertiary : Components.Theme.surfaceHover
                                 border.width: modelData.connected ? 2 : 1
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
@@ -2205,7 +2840,7 @@ Item {
                                                       : (modelData.icon.indexOf("phone") !== -1
                                                          ? "󰄡"
                                                          : (modelData.icon.indexOf("keyboard") !== -1 ? "󰌌" : (modelData.icon.indexOf("mouse") !== -1 ? "󰍽" : "󰂯")))
-                                                color: modelData.connected ? "#7dcfff" : "#7aa2f7"
+                                                color: modelData.connected ? Components.Theme.accentTertiary : Components.Theme.accent
                                                 font.pixelSize: 20
                                                 anchors.verticalCenter: parent.verticalCenter
                                             }
@@ -2218,7 +2853,7 @@ Item {
                                                     spacing: 6
                                                     Text {
                                                         text: modelData.name || modelData.mac
-                                                        color: modelData.connected ? "#ffffff" : "#c0caf5"
+                                                        color: modelData.connected ? "#ffffff" : Components.Theme.fg
                                                         font.pixelSize: 13
                                                         font.bold: true
                                                     }
@@ -2229,14 +2864,14 @@ Item {
                                                         width: 48
                                                         height: 16
                                                         radius: 4
-                                                        color: "#1f3a2c"
-                                                        border.color: "#9ece6a"
+                                                        color: Qt.darker(Components.Theme.success, 2.8)
+                                                        border.color: Components.Theme.success
                                                         border.width: 1
                                                         anchors.verticalCenter: parent.verticalCenter
 
                                                         Text {
                                                             text: "󰥉 " + (modelData.battery || 100) + "%"
-                                                            color: "#9ece6a"
+                                                            color: Components.Theme.success
                                                             font.pixelSize: 9
                                                             font.bold: true
                                                             anchors.centerIn: parent
@@ -2248,7 +2883,7 @@ Item {
                                                     text: modelData.connected
                                                           ? "Connected & Ready"
                                                           : (modelData.paired ? "Paired • " + modelData.mac : "Available • " + modelData.mac)
-                                                    color: modelData.connected ? "#7dcfff" : "#565f89"
+                                                    color: modelData.connected ? Components.Theme.accentTertiary : Components.Theme.fgMuted
                                                     font.pixelSize: 10
                                                 }
                                             }
@@ -2266,13 +2901,13 @@ Item {
                                                 width: 80
                                                 height: 28
                                                 radius: 6
-                                                color: btDisMouse.containsMouse ? "#f7768e" : "#1f2335"
-                                                border.color: "#f7768e"
+                                                color: btDisMouse.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                                                border.color: Components.Theme.danger
                                                 border.width: 1
 
                                                 Text {
                                                     text: "Disconnect"
-                                                    color: btDisMouse.containsMouse ? "#1a1b26" : "#f7768e"
+                                                    color: btDisMouse.containsMouse ? Components.Theme.bg : Components.Theme.danger
                                                     font.pixelSize: 10
                                                     font.bold: true
                                                     anchors.centerIn: parent
@@ -2295,13 +2930,13 @@ Item {
                                                 width: 70
                                                 height: 28
                                                 radius: 6
-                                                color: btConnMouse.containsMouse ? "#7dcfff" : "#1f2335"
-                                                border.color: "#7dcfff"
+                                                color: btConnMouse.containsMouse ? Components.Theme.accentTertiary : Components.Theme.surface
+                                                border.color: Components.Theme.accentTertiary
                                                 border.width: 1
 
                                                 Text {
                                                     text: "Connect"
-                                                    color: btConnMouse.containsMouse ? "#1a1b26" : "#7dcfff"
+                                                    color: btConnMouse.containsMouse ? Components.Theme.bg : Components.Theme.accentTertiary
                                                     font.pixelSize: 11
                                                     font.bold: true
                                                     anchors.centerIn: parent
@@ -2324,13 +2959,13 @@ Item {
                                                 width: 60
                                                 height: 28
                                                 radius: 6
-                                                color: btPairMouse.containsMouse ? "#7aa2f7" : "#1f2335"
-                                                border.color: "#7aa2f7"
+                                                color: btPairMouse.containsMouse ? Components.Theme.accent : Components.Theme.surface
+                                                border.color: Components.Theme.accent
                                                 border.width: 1
 
                                                 Text {
                                                     text: "Pair"
-                                                    color: btPairMouse.containsMouse ? "#1a1b26" : "#7aa2f7"
+                                                    color: btPairMouse.containsMouse ? Components.Theme.bg : Components.Theme.accent
                                                     font.pixelSize: 11
                                                     font.bold: true
                                                     anchors.centerIn: parent
@@ -2353,13 +2988,13 @@ Item {
                                                 width: 60
                                                 height: 28
                                                 radius: 6
-                                                color: btForMouse.containsMouse ? "#f7768e" : "#1f2335"
-                                                border.color: btForMouse.containsMouse ? "#f7768e" : "#3b4261"
+                                                color: btForMouse.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                                                border.color: btForMouse.containsMouse ? Components.Theme.danger : Components.Theme.border
                                                 border.width: 1
 
                                                 Text {
                                                     text: "Forget"
-                                                    color: btForMouse.containsMouse ? "#1a1b26" : "#565f89"
+                                                    color: btForMouse.containsMouse ? Components.Theme.bg : Components.Theme.fgMuted
                                                     font.pixelSize: 10
                                                     anchors.centerIn: parent
                                                 }
@@ -2384,7 +3019,7 @@ Item {
 
                                         Text {
                                             text: "󰓃 Profile:"
-                                            color: "#565f89"
+                                            color: Components.Theme.fgMuted
                                             font.pixelSize: 10
                                             anchors.verticalCenter: parent.verticalCenter
                                         }
@@ -2397,17 +3032,17 @@ Item {
                                                 height: 22
                                                 radius: 5
                                                 color: modelData.id === modelData.active_profile || (modelData.active_profile && modelData.active_profile.indexOf(modelData.id) !== -1)
-                                                       ? "#7dcfff"
-                                                       : (profMouse.containsMouse ? "#24283b" : "#16161e")
-                                                border.color: modelData.id === modelData.active_profile ? "#7dcfff" : "#3b4261"
+                                                       ? Components.Theme.accentTertiary
+                                                       : (profMouse.containsMouse ? Components.Theme.bgAlt : Components.Theme.bg)
+                                                border.color: modelData.id === modelData.active_profile ? Components.Theme.accentTertiary : Components.Theme.border
                                                 border.width: 1
 
                                                 Text {
                                                     id: profText
                                                     text: modelData.name
                                                     color: (modelData.id === modelData.active_profile || (modelData.active_profile && modelData.active_profile.indexOf(modelData.id) !== -1))
-                                                           ? "#1a1b26"
-                                                           : "#c0caf5"
+                                                           ? Components.Theme.bg
+                                                           : Components.Theme.fg
                                                     font.pixelSize: 10
                                                     font.bold: true
                                                     anchors.centerIn: parent
@@ -2446,7 +3081,7 @@ Item {
         id: galleryPopup
         anchor.window: barWindow
         anchor.rect.x: Math.round(barWindow.width - 820 - 20)
-        anchor.rect.y: 55
+        anchor.rect.y: Math.round(barWindow.height + 4)
         anchor.rect.width: 820
         anchor.rect.height: 1
 
@@ -2458,8 +3093,8 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: 18
-            color: "#F51a1b26"
-            border.color: "#3b4261"
+            color: Components.Theme.bgAlpha
+            border.color: Components.Theme.border
             border.width: 1
 
             // Top-right slide in animation
@@ -2490,13 +3125,13 @@ Item {
                         width: 38
                         height: 38
                         radius: 10
-                        color: "#16161e"
-                        border.color: "#7aa2f7"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.accent
                         border.width: 1
 
                         Text {
                             text: "󰸉"
-                            color: "#7aa2f7"
+                            color: Components.Theme.accent
                             font.pixelSize: 20
                             anchors.centerIn: parent
                         }
@@ -2508,14 +3143,14 @@ Item {
 
                         Text {
                             text: "Web Wallpaper Studio"
-                            color: "#c0caf5"
+                            color: Components.Theme.fg
                             font.pixelSize: 16
                             font.bold: true
                         }
 
                         Text {
                             text: "HTML5/WebGL Engine & Real-Time Effect Customizer"
-                            color: "#565f89"
+                            color: Components.Theme.fgMuted
                             font.pixelSize: 11
                         }
                     }
@@ -2531,8 +3166,8 @@ Item {
                         height: 30
                         width: statusText.implicitWidth + 24
                         radius: 15
-                        color: root.isEngineRunning ? "#1a2f26" : "#2f1a20"
-                        border.color: root.isEngineRunning ? "#9ece6a" : "#f7768e"
+                        color: root.isEngineRunning ? Qt.darker(Components.Theme.success, 3.2) : Qt.darker(Components.Theme.danger, 3.5)
+                        border.color: root.isEngineRunning ? Components.Theme.success : Components.Theme.danger
                         border.width: 1
                         anchors.verticalCenter: parent.verticalCenter
 
@@ -2543,13 +3178,13 @@ Item {
                                 width: 6
                                 height: 6
                                 radius: 3
-                                color: root.isEngineRunning ? "#9ece6a" : "#f7768e"
+                                color: root.isEngineRunning ? Components.Theme.success : Components.Theme.danger
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
                                 id: statusText
                                 text: root.isEngineRunning ? "Engine Online" : "Start Engine"
-                                color: root.isEngineRunning ? "#9ece6a" : "#f7768e"
+                                color: root.isEngineRunning ? Components.Theme.success : Components.Theme.danger
                                 font.pixelSize: 11
                                 font.bold: true
                             }
@@ -2572,13 +3207,13 @@ Item {
                         width: 32
                         height: 32
                         radius: 16
-                        color: refreshHover.containsMouse ? "#24283b" : "#1f2335"
-                        border.color: refreshHover.containsMouse ? "#7aa2f7" : "#3b4261"
+                        color: refreshHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                        border.color: refreshHover.containsMouse ? Components.Theme.accent : Components.Theme.border
                         border.width: 1
 
                         Text {
                             text: "󰑐"
-                            color: refreshHover.containsMouse ? "#7aa2f7" : "#c0caf5"
+                            color: refreshHover.containsMouse ? Components.Theme.accent : Components.Theme.fg
                             font.pixelSize: 14
                             anchors.centerIn: parent
                         }
@@ -2602,13 +3237,13 @@ Item {
                         width: 32
                         height: 32
                         radius: 16
-                        color: closeHover.containsMouse ? "#f7768e" : "#1f2335"
-                        border.color: closeHover.containsMouse ? "#f7768e" : "#3b4261"
+                        color: closeHover.containsMouse ? Components.Theme.danger : Components.Theme.surface
+                        border.color: closeHover.containsMouse ? Components.Theme.danger : Components.Theme.border
                         border.width: 1
 
                         Text {
                             text: "󰅖"
-                            color: closeHover.containsMouse ? "#1a1b26" : "#c0caf5"
+                            color: closeHover.containsMouse ? Components.Theme.bg : Components.Theme.fg
                             font.pixelSize: 14
                             anchors.centerIn: parent
                         }
@@ -2634,8 +3269,8 @@ Item {
                 anchors.rightMargin: 16
                 height: 42
                 radius: 10
-                color: "#16161e"
-                border.color: "#292e42"
+                color: Components.Theme.bg
+                border.color: Components.Theme.surfaceHover
                 border.width: 1
 
                 Row {
@@ -2648,15 +3283,15 @@ Item {
                         width: (parent.width - 16) / 5
                         height: parent.height
                         radius: 7
-                        color: root.selectedTab === 0 ? "#24283b" : "transparent"
-                        border.color: root.selectedTab === 0 ? "#7aa2f7" : "transparent"
+                        color: root.selectedTab === 0 ? Components.Theme.bgAlt : "transparent"
+                        border.color: root.selectedTab === 0 ? Components.Theme.accent : "transparent"
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 6
-                            Text { text: "󰈹"; color: root.selectedTab === 0 ? "#7aa2f7" : "#565f89"; font.pixelSize: 13 }
-                            Text { text: "Web Themes"; color: root.selectedTab === 0 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 0 }
+                            Text { text: "󰈹"; color: root.selectedTab === 0 ? Components.Theme.accent : Components.Theme.fgMuted; font.pixelSize: 13 }
+                            Text { text: "Web Themes"; color: root.selectedTab === 0 ? Components.Theme.fg : Components.Theme.fgMuted; font.pixelSize: 11; font.bold: root.selectedTab === 0 }
                         }
 
                         MouseArea {
@@ -2671,15 +3306,15 @@ Item {
                         width: (parent.width - 16) / 5
                         height: parent.height
                         radius: 7
-                        color: root.selectedTab === 1 ? "#24283b" : "transparent"
-                        border.color: root.selectedTab === 1 ? "#bb9af7" : "transparent"
+                        color: root.selectedTab === 1 ? Components.Theme.bgAlt : "transparent"
+                        border.color: root.selectedTab === 1 ? Components.Theme.accentSecondary : "transparent"
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 6
-                            Text { text: "󰋩"; color: root.selectedTab === 1 ? "#bb9af7" : "#565f89"; font.pixelSize: 13 }
-                            Text { text: "Wallpapers"; color: root.selectedTab === 1 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 1 }
+                            Text { text: "󰋩"; color: root.selectedTab === 1 ? Components.Theme.accentSecondary : Components.Theme.fgMuted; font.pixelSize: 13 }
+                            Text { text: "Wallpapers"; color: root.selectedTab === 1 ? Components.Theme.fg : Components.Theme.fgMuted; font.pixelSize: 11; font.bold: root.selectedTab === 1 }
                         }
 
                         MouseArea {
@@ -2694,15 +3329,15 @@ Item {
                         width: (parent.width - 16) / 5
                         height: parent.height
                         radius: 7
-                        color: root.selectedTab === 2 ? "#24283b" : "transparent"
-                        border.color: root.selectedTab === 2 ? "#7dcfff" : "transparent"
+                        color: root.selectedTab === 2 ? Components.Theme.bgAlt : "transparent"
+                        border.color: root.selectedTab === 2 ? Components.Theme.accentTertiary : "transparent"
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 6
-                            Text { text: "󰒓"; color: root.selectedTab === 2 ? "#7dcfff" : "#565f89"; font.pixelSize: 13 }
-                            Text { text: "Effects & FX"; color: root.selectedTab === 2 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 2 }
+                            Text { text: "󰒓"; color: root.selectedTab === 2 ? Components.Theme.accentTertiary : Components.Theme.fgMuted; font.pixelSize: 13 }
+                            Text { text: "Effects & FX"; color: root.selectedTab === 2 ? Components.Theme.fg : Components.Theme.fgMuted; font.pixelSize: 11; font.bold: root.selectedTab === 2 }
                         }
 
                         MouseArea {
@@ -2717,15 +3352,15 @@ Item {
                         width: (parent.width - 16) / 5
                         height: parent.height
                         radius: 7
-                        color: root.selectedTab === 3 ? "#24283b" : "transparent"
-                        border.color: root.selectedTab === 3 ? "#f7768e" : "transparent"
+                        color: root.selectedTab === 3 ? Components.Theme.bgAlt : "transparent"
+                        border.color: root.selectedTab === 3 ? Components.Theme.danger : "transparent"
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 6
-                            Text { text: "󰓅"; color: root.selectedTab === 3 ? "#f7768e" : "#565f89"; font.pixelSize: 13 }
-                            Text { text: "Performance"; color: root.selectedTab === 3 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 3 }
+                            Text { text: "󰓅"; color: root.selectedTab === 3 ? Components.Theme.danger : Components.Theme.fgMuted; font.pixelSize: 13 }
+                            Text { text: "Performance"; color: root.selectedTab === 3 ? Components.Theme.fg : Components.Theme.fgMuted; font.pixelSize: 11; font.bold: root.selectedTab === 3 }
                         }
 
                         MouseArea {
@@ -2740,15 +3375,15 @@ Item {
                         width: (parent.width - 16) / 5
                         height: parent.height
                         radius: 7
-                        color: root.selectedTab === 4 ? "#24283b" : "transparent"
-                        border.color: root.selectedTab === 4 ? "#9ece6a" : "transparent"
+                        color: root.selectedTab === 4 ? Components.Theme.bgAlt : "transparent"
+                        border.color: root.selectedTab === 4 ? Components.Theme.success : "transparent"
                         border.width: 1
 
                         Row {
                             anchors.centerIn: parent
                             spacing: 6
-                            Text { text: "󰏘"; color: root.selectedTab === 4 ? "#9ece6a" : "#565f89"; font.pixelSize: 13 }
-                            Text { text: "Canvas Colors"; color: root.selectedTab === 4 ? "#c0caf5" : "#565f89"; font.pixelSize: 11; font.bold: root.selectedTab === 4 }
+                            Text { text: "󰏘"; color: root.selectedTab === 4 ? Components.Theme.success : Components.Theme.fgMuted; font.pixelSize: 13 }
+                            Text { text: "Canvas Colors"; color: root.selectedTab === 4 ? Components.Theme.fg : Components.Theme.fgMuted; font.pixelSize: 11; font.bold: root.selectedTab === 4 }
                         }
 
                         MouseArea {
@@ -2770,7 +3405,7 @@ Item {
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
                 height: 1
-                color: "#292e42"
+                color: Components.Theme.surfaceHover
             }
 
             // TAB 0: Web Themes Grid
@@ -2797,9 +3432,9 @@ Item {
                             width: (themeGrid.width - (themeGrid.spacing * 2)) / 3
                             height: 160
                             radius: 12
-                            color: "#16161e"
+                            color: Components.Theme.bg
                             clip: true
-                            border.color: root.activeWallpaper === modelData.path ? "#7aa2f7" : (themeHover.containsMouse ? "#bb9af7" : "#292e42")
+                            border.color: root.activeWallpaper === modelData.path ? Components.Theme.accent : (themeHover.containsMouse ? Components.Theme.accentSecondary : Components.Theme.surfaceHover)
                             border.width: root.activeWallpaper === modelData.path ? 2 : 1
 
                             // Top gradient thumbnail
@@ -2809,8 +3444,8 @@ Item {
                                 anchors.right: parent.right
                                 height: 90
                                 gradient: Gradient {
-                                    GradientStop { position: 0.0; color: modelData.path === "cyber-city" ? "#1f2335" : (modelData.path === "aurora" ? "#142533" : (modelData.path === "cyber-matrix" ? "#0f2b1d" : "#24283b")) }
-                                    GradientStop { position: 1.0; color: "#16161e" }
+                                    GradientStop { position: 0.0; color: modelData.path === "cyber-city" ? Components.Theme.surface : (modelData.path === "aurora" ? "#142533" : (modelData.path === "cyber-matrix" ? Qt.darker(Components.Theme.success, 3.5) : Components.Theme.bgAlt)) }
+                                    GradientStop { position: 1.0; color: Components.Theme.bg }
                                 }
 
                                 Row {
@@ -2818,7 +3453,7 @@ Item {
                                     spacing: 8
                                     Text {
                                         text: modelData.path === "cyber-city" ? "󰈹" : (modelData.path === "aurora" ? "󰐊" : (modelData.path === "cyber-matrix" ? "󰘦" : "󰸉"))
-                                        color: modelData.path === "cyber-matrix" ? "#9ece6a" : "#7aa2f7"
+                                        color: modelData.path === "cyber-matrix" ? Components.Theme.success : Components.Theme.accent
                                         font.pixelSize: 28
                                     }
                                 }
@@ -2831,13 +3466,13 @@ Item {
                                     height: 18
                                     width: 78
                                     radius: 9
-                                    color: "#8016161e"
-                                    border.color: "#7aa2f7"
+                                    color: Qt.rgba(Qt.color(Components.Theme.bg).r, Qt.color(Components.Theme.bg).g, Qt.color(Components.Theme.bg).b, 0.5)
+                                    border.color: Components.Theme.accent
                                     border.width: 1
 
                                     Text {
                                         text: "INTERACTIVE"
-                                        color: "#7aa2f7"
+                                        color: Components.Theme.accent
                                         font.pixelSize: 8
                                         font.bold: true
                                         anchors.centerIn: parent
@@ -2855,7 +3490,7 @@ Item {
 
                                 Text {
                                     text: modelData.name
-                                    color: root.activeWallpaper === modelData.path ? "#7aa2f7" : "#c0caf5"
+                                    color: root.activeWallpaper === modelData.path ? Components.Theme.accent : Components.Theme.fg
                                     font.pixelSize: 13
                                     font.bold: true
                                     elide: Text.ElideRight
@@ -2864,7 +3499,7 @@ Item {
 
                                 Text {
                                     text: modelData.description || "Self-contained HTML theme"
-                                    color: "#565f89"
+                                    color: Components.Theme.fgMuted
                                     font.pixelSize: 10
                                     elide: Text.ElideRight
                                     width: parent.width
@@ -2880,11 +3515,11 @@ Item {
                                 width: 22
                                 height: 22
                                 radius: 11
-                                color: "#7aa2f7"
+                                color: Components.Theme.accent
 
                                 Text {
                                     text: "✔"
-                                    color: "#1a1b26"
+                                    color: Components.Theme.bg
                                     font.pixelSize: 11
                                     font.bold: true
                                     anchors.centerIn: parent
@@ -2930,9 +3565,9 @@ Item {
                             width: (wallGrid.width - (wallGrid.spacing * 2)) / 3
                             height: 155
                             radius: 12
-                            color: "#16161e"
+                            color: Components.Theme.bg
                             clip: true
-                            border.color: root.activeWallpaper === modelData.path ? "#bb9af7" : (cardHover.containsMouse ? "#7aa2f7" : "#292e42")
+                            border.color: root.activeWallpaper === modelData.path ? Components.Theme.accentSecondary : (cardHover.containsMouse ? Components.Theme.accent : Components.Theme.surfaceHover)
                             border.width: root.activeWallpaper === modelData.path ? 2 : 1
 
                             Image {
@@ -2949,7 +3584,7 @@ Item {
                                 anchors.bottom: parent.bottom
                                 width: parent.width
                                 height: 38
-                                color: "#D916161e"
+                                color: Qt.rgba(Qt.color(Components.Theme.bg).r, Qt.color(Components.Theme.bg).g, Qt.color(Components.Theme.bg).b, 0.85)
 
                                 Row {
                                     anchors.fill: parent
@@ -2959,14 +3594,14 @@ Item {
 
                                     Text {
                                         text: modelData.type === "video" ? "󰐊" : "󰋩"
-                                        color: modelData.type === "video" ? "#f7768e" : "#7aa2f7"
+                                        color: modelData.type === "video" ? Components.Theme.danger : Components.Theme.accent
                                         font.pixelSize: 13
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     Text {
                                         text: modelData.name
-                                        color: root.activeWallpaper === modelData.path ? "#bb9af7" : "#c0caf5"
+                                        color: root.activeWallpaper === modelData.path ? Components.Theme.accentSecondary : Components.Theme.fg
                                         font.pixelSize: 11
                                         font.bold: root.activeWallpaper === modelData.path
                                         elide: Text.ElideRight
@@ -2984,11 +3619,11 @@ Item {
                                 width: 22
                                 height: 22
                                 radius: 11
-                                color: "#bb9af7"
+                                color: Components.Theme.accentSecondary
 
                                 Text {
                                     text: "✔"
-                                    color: "#1a1b26"
+                                    color: Components.Theme.bg
                                     font.pixelSize: 11
                                     font.bold: true
                                     anchors.centerIn: parent
@@ -3031,8 +3666,8 @@ Item {
                         width: parent.width
                         height: 120
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Column {
@@ -3045,8 +3680,8 @@ Item {
                                 Item {
                                     width: parent.width - 80
                                     height: 24
-                                    Text { text: "Floating Ambient Particles"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
-                                    Text { text: "Procedural glowing particle canvas layered over the wallpaper"; color: "#565f89"; font.pixelSize: 10; anchors.bottom: parent.bottom }
+                                    Text { text: "Floating Ambient Particles"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
+                                    Text { text: "Procedural glowing particle canvas layered over the wallpaper"; color: Components.Theme.fgMuted; font.pixelSize: 10; anchors.bottom: parent.bottom }
                                 }
 
                                 // Toggle Switch
@@ -3054,7 +3689,7 @@ Item {
                                     width: 44
                                     height: 22
                                     radius: 11
-                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.enabled) ? "#7aa2f7" : "#24283b"
+                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.enabled) ? Components.Theme.accent : Components.Theme.bgAlt
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     Rectangle {
@@ -3081,7 +3716,7 @@ Item {
                             // Style & Density Selectors
                             Row {
                                 spacing: 14
-                                Text { text: "Style:"; color: "#7aa2f7"; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Style:"; color: Components.Theme.accent; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
 
                                 Repeater {
                                     model: ["embers", "dust", "nodes"]
@@ -3089,13 +3724,13 @@ Item {
                                         width: 68
                                         height: 24
                                         radius: 6
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? "#7aa2f7" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? "#7aa2f7" : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? Components.Theme.accent : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? Components.Theme.accent : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: modelData.toUpperCase()
-                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? "#1a1b26" : "#c0caf5"
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.style === modelData) ? Components.Theme.bg : Components.Theme.fg
                                             font.pixelSize: 9
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -3109,9 +3744,9 @@ Item {
                                     }
                                 }
 
-                                Rectangle { width: 1; height: 18; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+                                Rectangle { width: 1; height: 18; color: Components.Theme.surfaceHover; anchors.verticalCenter: parent.verticalCenter }
 
-                                Text { text: "Density:"; color: "#7aa2f7"; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Density:"; color: Components.Theme.accent; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
 
                                 Repeater {
                                     model: [20, 40, 80, 120]
@@ -3119,13 +3754,13 @@ Item {
                                         width: 36
                                         height: 24
                                         radius: 6
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? "#bb9af7" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? "#bb9af7" : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? Components.Theme.accentSecondary : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? Components.Theme.accentSecondary : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: modelData
-                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? "#1a1b26" : "#c0caf5"
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.particles && root.engineConfig.effects.particles.count === modelData) ? Components.Theme.bg : Components.Theme.fg
                                             font.pixelSize: 9
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -3147,8 +3782,8 @@ Item {
                         width: parent.width
                         height: 76
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
@@ -3160,8 +3795,8 @@ Item {
                                 width: parent.width - 240
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
-                                Text { text: "Interactive Mouse Parallax"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
-                                Text { text: "Hardware depth offset tilting wallpaper with global cursor movement"; color: "#565f89"; font.pixelSize: 10 }
+                                Text { text: "Interactive Mouse Parallax"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Hardware depth offset tilting wallpaper with global cursor movement"; color: Components.Theme.fgMuted; font.pixelSize: 10 }
                             }
 
                             Row {
@@ -3178,13 +3813,13 @@ Item {
                                         width: 58
                                         height: 24
                                         radius: 6
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? "#7dcfff" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? "#7dcfff" : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? Components.Theme.accentTertiary : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? Components.Theme.accentTertiary : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: modelData.name
-                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? "#1a1b26" : "#c0caf5"
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.depth === modelData.val) ? Components.Theme.bg : Components.Theme.fg
                                             font.pixelSize: 9
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -3204,7 +3839,7 @@ Item {
                                 width: 44
                                 height: 22
                                 radius: 11
-                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.enabled) ? "#7dcfff" : "#24283b"
+                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.parallax && root.engineConfig.effects.parallax.enabled) ? Components.Theme.accentTertiary : Components.Theme.bgAlt
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Rectangle {
@@ -3234,8 +3869,8 @@ Item {
                         width: parent.width
                         height: 76
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
@@ -3247,8 +3882,8 @@ Item {
                                 width: parent.width - 320
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
-                                Text { text: "Time-of-Day Lighting"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
-                                Text { text: "Atmospheric solar color overlay matching real-world time"; color: "#565f89"; font.pixelSize: 10 }
+                                Text { text: "Time-of-Day Lighting"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Atmospheric solar color overlay matching real-world time"; color: Components.Theme.fgMuted; font.pixelSize: 10 }
                             }
 
                             Row {
@@ -3261,13 +3896,13 @@ Item {
                                         width: 50
                                         height: 24
                                         radius: 6
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? "#e0af68" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? "#e0af68" : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? Components.Theme.warning : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? Components.Theme.warning : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: modelData.toUpperCase()
-                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? "#1a1b26" : "#c0caf5"
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && (root.engineConfig.effects.time_lighting.preset === modelData || (modelData === "auto" && root.engineConfig.effects.time_lighting.mode === "auto"))) ? Components.Theme.bg : Components.Theme.fg
                                             font.pixelSize: 8
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -3294,7 +3929,7 @@ Item {
                                 width: 44
                                 height: 22
                                 radius: 11
-                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && root.engineConfig.effects.time_lighting.enabled) ? "#e0af68" : "#24283b"
+                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.time_lighting && root.engineConfig.effects.time_lighting.enabled) ? Components.Theme.warning : Components.Theme.bgAlt
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Rectangle {
@@ -3324,8 +3959,8 @@ Item {
                         width: parent.width
                         height: 76
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
@@ -3337,8 +3972,8 @@ Item {
                                 width: parent.width - 200
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
-                                Text { text: "Weather Canvas Overlay"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
-                                Text { text: "Live animated rain or snow particle physics on desktop"; color: "#565f89"; font.pixelSize: 10 }
+                                Text { text: "Weather Canvas Overlay"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Live animated rain or snow particle physics on desktop"; color: Components.Theme.fgMuted; font.pixelSize: 10 }
                             }
 
                             Row {
@@ -3354,13 +3989,13 @@ Item {
                                         width: 64
                                         height: 24
                                         radius: 6
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? "#7aa2f7" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? "#7aa2f7" : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? Components.Theme.accent : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? Components.Theme.accent : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: modelData.label
-                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? "#1a1b26" : "#c0caf5"
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.type === modelData.id) ? Components.Theme.bg : Components.Theme.fg
                                             font.pixelSize: 9
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -3380,7 +4015,7 @@ Item {
                                 width: 44
                                 height: 22
                                 radius: 11
-                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.enabled) ? "#7aa2f7" : "#24283b"
+                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.weather && root.engineConfig.effects.weather.enabled) ? Components.Theme.accent : Components.Theme.bgAlt
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Rectangle {
@@ -3410,8 +4045,8 @@ Item {
                         width: parent.width
                         height: 76
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
@@ -3423,8 +4058,8 @@ Item {
                                 width: parent.width - 240
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
-                                Text { text: "Cyber HUD Clock & Date"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
-                                Text { text: "Neon heads-up display showing live time, date, and telemetry"; color: "#565f89"; font.pixelSize: 10 }
+                                Text { text: "Cyber HUD Clock & Date"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Neon heads-up display showing live time, date, and telemetry"; color: Components.Theme.fgMuted; font.pixelSize: 10 }
                             }
 
                             Row {
@@ -3441,13 +4076,13 @@ Item {
                                         width: 60
                                         height: 24
                                         radius: 6
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? "#bb9af7" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? "#bb9af7" : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? Components.Theme.accentSecondary : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? Components.Theme.accentSecondary : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: modelData.label
-                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? "#1a1b26" : "#c0caf5"
+                                            color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.position === modelData.id) ? Components.Theme.bg : Components.Theme.fg
                                             font.pixelSize: 8
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -3467,7 +4102,7 @@ Item {
                                 width: 44
                                 height: 22
                                 radius: 11
-                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.enabled) ? "#bb9af7" : "#24283b"
+                                color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.clock_hud && root.engineConfig.effects.clock_hud.enabled) ? Components.Theme.accentSecondary : Components.Theme.bgAlt
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Rectangle {
@@ -3497,8 +4132,8 @@ Item {
                         width: parent.width
                         height: 76
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
@@ -3510,8 +4145,8 @@ Item {
                                 width: parent.width - 240
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
-                                Text { text: "Scanlines, Vignette & Depth Blur"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
-                                Text { text: "Atmospheric CRT phosphor lines, edge shading, and hardware blur"; color: "#565f89"; font.pixelSize: 10 }
+                                Text { text: "Scanlines, Vignette & Depth Blur"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Atmospheric CRT phosphor lines, edge shading, and hardware blur"; color: Components.Theme.fgMuted; font.pixelSize: 10 }
                             }
 
                             Row {
@@ -3522,13 +4157,13 @@ Item {
                                     width: 72
                                     height: 26
                                     radius: 6
-                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.scanlines && root.engineConfig.effects.scanlines.enabled) ? "#7aa2f7" : "#1f2335"
-                                    border.color: "#3b4261"
+                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.scanlines && root.engineConfig.effects.scanlines.enabled) ? Components.Theme.accent : Components.Theme.surface
+                                    border.color: Components.Theme.border
                                     border.width: 1
 
                                     Text {
                                         text: "Scanlines"
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.scanlines && root.engineConfig.effects.scanlines.enabled) ? "#1a1b26" : "#c0caf5"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.scanlines && root.engineConfig.effects.scanlines.enabled) ? Components.Theme.bg : Components.Theme.fg
                                         font.pixelSize: 10
                                         font.bold: true
                                         anchors.centerIn: parent
@@ -3549,13 +4184,13 @@ Item {
                                     width: 72
                                     height: 26
                                     radius: 6
-                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.vignette && root.engineConfig.effects.vignette.enabled) ? "#bb9af7" : "#1f2335"
-                                    border.color: "#3b4261"
+                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.vignette && root.engineConfig.effects.vignette.enabled) ? Components.Theme.accentSecondary : Components.Theme.surface
+                                    border.color: Components.Theme.border
                                     border.width: 1
 
                                     Text {
                                         text: "Vignette"
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.vignette && root.engineConfig.effects.vignette.enabled) ? "#1a1b26" : "#c0caf5"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.vignette && root.engineConfig.effects.vignette.enabled) ? Components.Theme.bg : Components.Theme.fg
                                         font.pixelSize: 10
                                         font.bold: true
                                         anchors.centerIn: parent
@@ -3576,13 +4211,13 @@ Item {
                                     width: 64
                                     height: 26
                                     radius: 6
-                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.blur && root.engineConfig.effects.blur.enabled) ? "#9ece6a" : "#1f2335"
-                                    border.color: "#3b4261"
+                                    color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.blur && root.engineConfig.effects.blur.enabled) ? Components.Theme.success : Components.Theme.surface
+                                    border.color: Components.Theme.border
                                     border.width: 1
 
                                     Text {
                                         text: "Blur"
-                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.blur && root.engineConfig.effects.blur.enabled) ? "#1a1b26" : "#c0caf5"
+                                        color: (root.engineConfig && root.engineConfig.effects && root.engineConfig.effects.blur && root.engineConfig.effects.blur.enabled) ? Components.Theme.bg : Components.Theme.fg
                                         font.pixelSize: 10
                                         font.bold: true
                                         anchors.centerIn: parent
@@ -3608,8 +4243,8 @@ Item {
                         width: parent.width
                         height: 76
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
@@ -3621,15 +4256,15 @@ Item {
                                 width: parent.width - 340
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
-                                Text { text: "Brightness & Contrast Tuning"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
-                                Text { text: "Fine-tune wallpaper luminance, contrast, and color vibrancy"; color: "#565f89"; font.pixelSize: 10 }
+                                Text { text: "Brightness & Contrast Tuning"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Fine-tune wallpaper luminance, contrast, and color vibrancy"; color: Components.Theme.fgMuted; font.pixelSize: 10 }
                             }
 
                             Row {
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 6
 
-                                Text { text: "Bright:"; color: "#e0af68"; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Bright:"; color: Components.Theme.warning; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
 
                                 Repeater {
                                     model: [75, 100, 125]
@@ -3637,13 +4272,13 @@ Item {
                                         width: 44
                                         height: 24
                                         radius: 6
-                                        color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? "#e0af68" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? "#e0af68" : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? Components.Theme.warning : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? Components.Theme.warning : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: modelData + "%"
-                                            color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? "#1a1b26" : "#c0caf5"
+                                            color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.brightness || 100) === modelData) ? Components.Theme.bg : Components.Theme.fg
                                             font.pixelSize: 8
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -3657,9 +4292,9 @@ Item {
                                     }
                                 }
 
-                                Rectangle { width: 1; height: 18; color: "#292e42"; anchors.verticalCenter: parent.verticalCenter }
+                                Rectangle { width: 1; height: 18; color: Components.Theme.surfaceHover; anchors.verticalCenter: parent.verticalCenter }
 
-                                Text { text: "Contrast:"; color: "#7dcfff"; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Contrast:"; color: Components.Theme.accentTertiary; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
 
                                 Repeater {
                                     model: [80, 100, 120]
@@ -3667,13 +4302,13 @@ Item {
                                         width: 44
                                         height: 24
                                         radius: 6
-                                        color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? "#7dcfff" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? "#7dcfff" : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? Components.Theme.accentTertiary : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? Components.Theme.accentTertiary : Components.Theme.border
                                         border.width: 1
 
                                         Text {
                                             text: modelData + "%"
-                                            color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? "#1a1b26" : "#c0caf5"
+                                            color: (root.engineConfig && root.engineConfig.effects && (root.engineConfig.effects.contrast || 100) === modelData) ? Components.Theme.bg : Components.Theme.fg
                                             font.pixelSize: 8
                                             font.bold: true
                                             anchors.centerIn: parent
@@ -3713,8 +4348,8 @@ Item {
                         width: parent.width
                         height: 90
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Column {
@@ -3722,7 +4357,7 @@ Item {
                             anchors.margins: 12
                             spacing: 8
 
-                            Text { text: "Performance Profiles"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                            Text { text: "Performance Profiles"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
 
                             Row {
                                 spacing: 10
@@ -3730,16 +4365,16 @@ Item {
 
                                 Repeater {
                                     model: [
-                                        { id: "battery_saver", title: "Battery Saver", desc: "30 FPS // Minimal FX", color: "#9ece6a" },
-                                        { id: "balanced", title: "Balanced", desc: "60 FPS // Standard FX", color: "#7aa2f7" },
-                                        { id: "performance", title: "Performance", desc: "120+ FPS // Max FX", color: "#bb9af7" }
+                                        { id: "battery_saver", title: "Battery Saver", desc: "30 FPS // Minimal FX", color: Components.Theme.success },
+                                        { id: "balanced", title: "Balanced", desc: "60 FPS // Standard FX", color: Components.Theme.accent },
+                                        { id: "performance", title: "Performance", desc: "120+ FPS // Max FX", color: Components.Theme.accentSecondary }
                                     ]
                                     delegate: Rectangle {
                                         width: (perfCol.width - 44) / 3
                                         height: 44
                                         radius: 8
-                                        color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? "#24283b" : "#1f2335"
-                                        border.color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? modelData.color : "#3b4261"
+                                        color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? Components.Theme.bgAlt : Components.Theme.surface
+                                        border.color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? modelData.color : Components.Theme.border
                                         border.width: (root.engineConfig && root.engineConfig.quality === modelData.id) ? 2 : 1
 
                                         Column {
@@ -3747,14 +4382,14 @@ Item {
                                             spacing: 2
                                             Text {
                                                 text: modelData.title
-                                                color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? modelData.color : "#c0caf5"
+                                                color: (root.engineConfig && root.engineConfig.quality === modelData.id) ? modelData.color : Components.Theme.fg
                                                 font.pixelSize: 11
                                                 font.bold: true
                                                 anchors.horizontalCenter: parent.horizontalCenter
                                             }
                                             Text {
                                                 text: modelData.desc
-                                                color: "#565f89"
+                                                color: Components.Theme.fgMuted
                                                 font.pixelSize: 9
                                                 anchors.horizontalCenter: parent.horizontalCenter
                                             }
@@ -3788,8 +4423,8 @@ Item {
                         width: parent.width
                         height: 100
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Column {
@@ -3802,15 +4437,15 @@ Item {
                                 Item {
                                     width: parent.width - 60
                                     height: 20
-                                    Text { text: "Intelligent Fullscreen Pause"; color: "#c0caf5"; font.bold: true; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { text: "Automatically halts rendering when a fullscreen game or video covers the monitor"; color: "#565f89"; font.pixelSize: 10; anchors.bottom: parent.bottom }
+                                    Text { text: "Intelligent Fullscreen Pause"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { text: "Automatically halts rendering when a fullscreen game or video covers the monitor"; color: Components.Theme.fgMuted; font.pixelSize: 10; anchors.bottom: parent.bottom }
                                 }
 
                                 Rectangle {
                                     width: 44
                                     height: 22
                                     radius: 11
-                                    color: (root.engineConfig && root.engineConfig.pause_fullscreen) ? "#7aa2f7" : "#24283b"
+                                    color: (root.engineConfig && root.engineConfig.pause_fullscreen) ? Components.Theme.accent : Components.Theme.bgAlt
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     Rectangle {
@@ -3834,22 +4469,22 @@ Item {
                                 }
                             }
 
-                            Rectangle { width: parent.width; height: 1; color: "#24283b" }
+                            Rectangle { width: parent.width; height: 1; color: Components.Theme.bgAlt }
 
                             Row {
                                 width: parent.width
                                 Item {
                                     width: parent.width - 60
                                     height: 20
-                                    Text { text: "Laptop Battery Throttle"; color: "#c0caf5"; font.bold: true; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { text: "Reduces FPS and complex effects automatically when unplugged from AC power"; color: "#565f89"; font.pixelSize: 10; anchors.bottom: parent.bottom }
+                                    Text { text: "Laptop Battery Throttle"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { text: "Reduces FPS and complex effects automatically when unplugged from AC power"; color: Components.Theme.fgMuted; font.pixelSize: 10; anchors.bottom: parent.bottom }
                                 }
 
                                 Rectangle {
                                     width: 44
                                     height: 22
                                     radius: 11
-                                    color: (root.engineConfig && root.engineConfig.battery_saver) ? "#9ece6a" : "#24283b"
+                                    color: (root.engineConfig && root.engineConfig.battery_saver) ? Components.Theme.success : Components.Theme.bgAlt
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     Rectangle {
@@ -3880,8 +4515,8 @@ Item {
                         width: parent.width
                         height: 100
                         radius: 12
-                        color: "#16161e"
-                        border.color: "#292e42"
+                        color: Components.Theme.bg
+                        border.color: Components.Theme.surfaceHover
                         border.width: 1
 
                         Row {
@@ -3894,15 +4529,15 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 4
 
-                                Text { text: "Engine Process & Monitors"; color: "#c0caf5"; font.bold: true; font.pixelSize: 13 }
+                                Text { text: "Engine Process & Monitors"; color: Components.Theme.fg; font.bold: true; font.pixelSize: 13 }
                                 Text {
                                     text: "PID: " + (root.engineStatus ? root.engineStatus.pid : "--") + "  |  Monitors: " + (root.engineStatus && root.engineStatus.monitors ? root.engineStatus.monitors.join(", ") : "None")
-                                    color: "#7aa2f7"
+                                    color: Components.Theme.accent
                                     font.pixelSize: 11
                                 }
                                 Text {
                                     text: "Target: " + (root.engineStatus ? root.engineStatus.active : "None")
-                                    color: "#565f89"
+                                    color: Components.Theme.fgMuted
                                     font.pixelSize: 10
                                     elide: Text.ElideRight
                                     width: parent.width
@@ -3918,15 +4553,15 @@ Item {
                                     width: 90
                                     height: 34
                                     radius: 8
-                                    color: reloadHover.containsMouse ? "#24283b" : "#1f2335"
-                                    border.color: reloadHover.containsMouse ? "#7aa2f7" : "#3b4261"
+                                    color: reloadHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                                    border.color: reloadHover.containsMouse ? Components.Theme.accent : Components.Theme.border
                                     border.width: 1
 
                                     Row {
                                         anchors.centerIn: parent
                                         spacing: 4
-                                        Text { text: "󰑐"; color: "#7aa2f7"; font.pixelSize: 12 }
-                                        Text { text: "Reload"; color: "#c0caf5"; font.pixelSize: 11; font.bold: true }
+                                        Text { text: "󰑐"; color: Components.Theme.accent; font.pixelSize: 12 }
+                                        Text { text: "Reload"; color: Components.Theme.fg; font.pixelSize: 11; font.bold: true }
                                     }
 
                                     MouseArea {
@@ -3945,15 +4580,15 @@ Item {
                                     width: 95
                                     height: 34
                                     radius: 8
-                                    color: restartHover.containsMouse ? "#24283b" : "#1f2335"
-                                    border.color: restartHover.containsMouse ? "#bb9af7" : "#3b4261"
+                                    color: restartHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                                    border.color: restartHover.containsMouse ? Components.Theme.accentSecondary : Components.Theme.border
                                     border.width: 1
 
                                     Row {
                                         anchors.centerIn: parent
                                         spacing: 4
-                                        Text { text: "󰜉"; color: "#bb9af7"; font.pixelSize: 12 }
-                                        Text { text: "Restart"; color: "#c0caf5"; font.pixelSize: 11; font.bold: true }
+                                        Text { text: "󰜉"; color: Components.Theme.accentSecondary; font.pixelSize: 12 }
+                                        Text { text: "Restart"; color: Components.Theme.fg; font.pixelSize: 11; font.bold: true }
                                     }
 
                                     MouseArea {
@@ -3973,15 +4608,15 @@ Item {
                                     width: 95
                                     height: 34
                                     radius: 8
-                                    color: randHover.containsMouse ? "#24283b" : "#1f2335"
-                                    border.color: randHover.containsMouse ? "#9ece6a" : "#3b4261"
+                                    color: randHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                                    border.color: randHover.containsMouse ? Components.Theme.success : Components.Theme.border
                                     border.width: 1
 
                                     Row {
                                         anchors.centerIn: parent
                                         spacing: 4
-                                        Text { text: "󰒝"; color: "#9ece6a"; font.pixelSize: 12 }
-                                        Text { text: "Random"; color: "#c0caf5"; font.pixelSize: 11; font.bold: true }
+                                        Text { text: "󰒝"; color: Components.Theme.success; font.pixelSize: 12 }
+                                        Text { text: "Random"; color: Components.Theme.fg; font.pixelSize: 11; font.bold: true }
                                     }
 
                                     MouseArea {
@@ -4026,7 +4661,7 @@ Item {
                             height: 100
                             radius: 12
                             color: modelData.hex
-                            border.color: root.activeWallpaper === ("color:" + modelData.hex) ? "#7aa2f7" : (colorHover.containsMouse ? "#bb9af7" : "#3b4261")
+                            border.color: root.activeWallpaper === ("color:" + modelData.hex) ? Components.Theme.accent : (colorHover.containsMouse ? Components.Theme.accentSecondary : Components.Theme.border)
                             border.width: root.activeWallpaper === ("color:" + modelData.hex) ? 2 : 1
 
                             Column {
@@ -4035,7 +4670,7 @@ Item {
 
                                 Text {
                                     text: modelData.name
-                                    color: "#c0caf5"
+                                    color: Components.Theme.fg
                                     font.pixelSize: 12
                                     font.bold: true
                                     horizontalAlignment: Text.AlignHCenter
@@ -4043,7 +4678,7 @@ Item {
                                 }
                                 Text {
                                     text: modelData.hex
-                                    color: "#7aa2f7"
+                                    color: Components.Theme.accent
                                     font.pixelSize: 10
                                     horizontalAlignment: Text.AlignHCenter
                                     anchors.horizontalCenter: parent.horizontalCenter
@@ -4059,11 +4694,11 @@ Item {
                                 width: 20
                                 height: 20
                                 radius: 10
-                                color: "#7aa2f7"
+                                color: Components.Theme.accent
 
                                 Text {
                                     text: "✔"
-                                    color: "#1a1b26"
+                                    color: Components.Theme.bg
                                     font.pixelSize: 10
                                     font.bold: true
                                     anchors.centerIn: parent
@@ -4121,8 +4756,8 @@ Item {
                 width: 440
                 height: 240
                 radius: 16
-                color: "#1a1b26"
-                border.color: "#7aa2f7"
+                color: Components.Theme.bg
+                border.color: Components.Theme.accent
                 border.width: 1.5
                 anchors.centerIn: parent
 
@@ -4138,23 +4773,23 @@ Item {
 
                     Row {
                         spacing: 12
-                        Text { text: "󰌾"; color: "#7aa2f7"; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "󰌾"; color: Components.Theme.accent; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
                         Column {
                             spacing: 2
-                            Text { text: "Wi-Fi Authentication"; color: "#c0caf5"; font.pixelSize: 15; font.bold: true }
-                            Text { text: "Enter password for \"" + root.wifiSelectedSsid + "\""; color: "#7dcfff"; font.pixelSize: 12; elide: Text.ElideRight; width: 330 }
+                            Text { text: "Wi-Fi Authentication"; color: Components.Theme.fg; font.pixelSize: 15; font.bold: true }
+                            Text { text: "Enter password for \"" + root.wifiSelectedSsid + "\""; color: Components.Theme.accentTertiary; font.pixelSize: 12; elide: Text.ElideRight; width: 330 }
                         }
                     }
 
-                    Rectangle { width: parent.width; height: 1; color: "#292e42" }
+                    Rectangle { width: parent.width; height: 1; color: Components.Theme.surfaceHover }
 
                     // Password Input Field
                     Rectangle {
                         width: parent.width
                         height: 42
                         radius: 8
-                        color: "#16161e"
-                        border.color: pwdInput.activeFocus ? "#7aa2f7" : "#3b4261"
+                        color: Components.Theme.bg
+                        border.color: pwdInput.activeFocus ? Components.Theme.accent : Components.Theme.border
                         border.width: 1
 
                         Row {
@@ -4169,7 +4804,7 @@ Item {
                                 TextInput {
                                     id: pwdInput
                                     anchors.fill: parent
-                                    color: "#c0caf5"
+                                    color: Components.Theme.fg
                                     font.pixelSize: 14
                                     echoMode: showPwd.checked ? TextInput.Normal : TextInput.Password
                                     clip: true
@@ -4191,7 +4826,7 @@ Item {
 
                                 Text {
                                     text: "Enter network password..."
-                                    color: "#565f89"
+                                    color: Components.Theme.fgMuted
                                     font.pixelSize: 13
                                     visible: pwdInput.text === "" && !pwdInput.activeFocus
                                     anchors.verticalCenter: parent.verticalCenter
@@ -4203,7 +4838,7 @@ Item {
                                 id: showPwd
                                 property bool checked: false
                                 text: checked ? "󰈈" : "󰈉"
-                                color: checked ? "#7aa2f7" : "#565f89"
+                                color: checked ? Components.Theme.accent : Components.Theme.fgMuted
                                 font.pixelSize: 18
                                 anchors.verticalCenter: parent.verticalCenter
 
@@ -4233,15 +4868,15 @@ Item {
                             width: 125
                             height: 36
                             radius: 8
-                            color: rofiHover.containsMouse ? "#24283b" : "#1f2335"
-                            border.color: "#3b4261"
+                            color: rofiHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                            border.color: Components.Theme.border
                             border.width: 1
 
                             Row {
                                 anchors.centerIn: parent
                                 spacing: 6
-                                Text { text: "󰌾"; color: "#7dcfff"; font.pixelSize: 12 }
-                                Text { text: "Rofi Prompt"; color: "#c0caf5"; font.pixelSize: 12 }
+                                Text { text: "󰌾"; color: Components.Theme.accentTertiary; font.pixelSize: 12 }
+                                Text { text: "Rofi Prompt"; color: Components.Theme.fg; font.pixelSize: 12 }
                             }
 
                             MouseArea {
@@ -4263,11 +4898,11 @@ Item {
                             width: 80
                             height: 36
                             radius: 8
-                            color: cancelHover.containsMouse ? "#24283b" : "#1f2335"
-                            border.color: "#3b4261"
+                            color: cancelHover.containsMouse ? Components.Theme.bgAlt : Components.Theme.surface
+                            border.color: Components.Theme.border
                             border.width: 1
 
-                            Text { text: "Cancel"; color: "#c0caf5"; font.pixelSize: 13; anchors.centerIn: parent }
+                            Text { text: "Cancel"; color: Components.Theme.fg; font.pixelSize: 13; anchors.centerIn: parent }
 
                             MouseArea {
                                 id: cancelHover
@@ -4285,9 +4920,9 @@ Item {
                             width: 95
                             height: 36
                             radius: 8
-                            color: connHover.containsMouse ? "#89b4fa" : "#7aa2f7"
+                            color: connHover.containsMouse ? Components.Theme.accent : Components.Theme.accent
 
-                            Text { text: "Connect"; color: "#1a1b26"; font.pixelSize: 13; font.bold: true; anchors.centerIn: parent }
+                            Text { text: "Connect"; color: Components.Theme.bg; font.pixelSize: 13; font.bold: true; anchors.centerIn: parent }
 
                             MouseArea {
                                 id: connHover

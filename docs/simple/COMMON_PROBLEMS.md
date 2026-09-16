@@ -13,7 +13,7 @@ Quick answers and copy-paste commands for everyday issues.
    ```
 2. Restart the bar manually:
    ```bash
-   killall qs; qs -d -p ~/DARK_NIRI/quickshell/shell.qml &
+   ~/DARK_NIRI/quickshell/reload-shell.sh
    ```
 
 ---

@@ -44,7 +44,7 @@ layout {
     
     struts {
         // Add a top margin for Quickshell if needed, but PanelWindow usually handles this
-        // top 32
+         // top 32
     }
 }
 
@@ -52,6 +52,12 @@ layout {
 window-rule {
     match app-id=r#"^org\.wezfurlong\.wezterm$"#
     default-column-width {}
+}
+
+// Open every tiled app maximized by default (like Super+F)
+window-rule {
+    match is-floating=false
+    default-column-width { proportion 1.0; }
 }
 
 binds {
@@ -112,3 +118,4 @@ binds {
 }
 
 include "outputs.kdl"
+include "theme.kdl"

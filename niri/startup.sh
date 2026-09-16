@@ -4,6 +4,9 @@
 # Redirect all stdout and stderr to /dev/null for silent/quiet startup
 exec >/dev/null 2>&1
 
+# Disable core dump generation to prevent system freezes and disk thrashing on child process exit
+ulimit -c 0
+
 # IMPORTANT: Update D-Bus and Systemd environment to fix apps opening on the wrong TTY/Compositor
 dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
@@ -23,3 +26,6 @@ $HOME/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl init &
 
 # Start Clipboard Manager (cliphist)
 wl-paste --watch cliphist store &
+
+# Run cache & scratch hygiene cleanup in background
+$HOME/DARK_NIRI/niri/cleanup.sh &

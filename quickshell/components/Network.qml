@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "." as Components
 
 Item {
     id: root
@@ -19,9 +20,9 @@ Item {
     }
 
     function getIconColor() {
-        if (root.netType === "none" || root.netName === "Disconnected") return "#f7768e";
-        if (root.netType === "ethernet" || root.netType === "usb") return "#9ece6a";
-        return "#7aa2f7";
+        if (root.netType === "none" || root.netName === "Disconnected") return Components.Theme.danger;
+        if (root.netType === "ethernet" || root.netType === "usb") return Components.Theme.success;
+        return Components.Theme.accent;
     }
 
     Process {
@@ -65,7 +66,7 @@ Item {
         }
         Text {
             text: root.netName
-            color: "#c0caf5"
+            color: Components.Theme.fg
             font.pixelSize: 15
             anchors.verticalCenter: parent.verticalCenter
         }

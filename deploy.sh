@@ -54,7 +54,9 @@ if [ -d "$SOURCE_DIR/dark-tools-rs" ] && command -v cargo >/dev/null 2>&1; then
          cp target/release/wifi "$SOURCE_DIR/quickshell/" && \
          cp target/release/bluetooth "$SOURCE_DIR/quickshell/" && \
          cp target/release/notifications "$SOURCE_DIR/quickshell/" && \
-         cp target/release/wp-ipc "$SOURCE_DIR/quickshell/wallpaper-engine/")
+         cp target/release/theme-manager "$SOURCE_DIR/quickshell/" && \
+         cp target/release/wp-ipc "$SOURCE_DIR/quickshell/wallpaper-engine/" && \
+         cp target/release/wallpaper-engine "$SOURCE_DIR/quickshell/wallpaper-engine/")
     fi
 fi
 chmod +x "$SOURCE_DIR/quickshell/net-tracker" \
@@ -62,7 +64,9 @@ chmod +x "$SOURCE_DIR/quickshell/net-tracker" \
          "$SOURCE_DIR/quickshell/wifi" \
          "$SOURCE_DIR/quickshell/bluetooth" \
          "$SOURCE_DIR/quickshell/notifications" \
-         "$SOURCE_DIR/quickshell/wallpaper-engine/wp-ipc" 2>/dev/null || true
+         "$SOURCE_DIR/quickshell/theme-manager" \
+         "$SOURCE_DIR/quickshell/wallpaper-engine/wp-ipc" \
+         "$SOURCE_DIR/quickshell/wallpaper-engine/wallpaper-engine" 2>/dev/null || true
 
 # Ensure compatibility symlinks exist
 (cd "$SOURCE_DIR/quickshell" && \

@@ -1,54 +1,54 @@
 {
-  "active": "/home/aryan/Pictures/Wallpapers/1137731.jpg",
-  "active_type": "image",
+  "active": "cyber-city",
+  "active_type": "theme",
   "mode": "global",
   "monitors": {},
   "fps": 30,
-  "quality": "balanced",
+  "quality": "battery_saver",
   "battery_saver": true,
   "pause_fullscreen": true,
   "effects": {
-    "particles": {
-      "enabled": true,
-      "style": "dust",
-      "count": 40,
-      "speed": 1.0,
-      "color": "#7aa2f7"
-    },
-    "parallax": {
-      "enabled": true,
-      "depth": 4
-    },
-    "time_lighting": {
-      "enabled": true,
-      "mode": "manual",
-      "preset": "night"
-    },
-    "weather": {
-      "enabled": true,
-      "type": "snow",
-      "intensity": "medium"
-    },
-    "clock_hud": {
-      "enabled": true,
-      "style": "cyber",
-      "position": "center",
-      "format24h": true,
-      "showSeconds": true
-    },
-    "scanlines": {
-      "enabled": false,
-      "opacity": 0.25
-    },
-    "vignette": {
-      "enabled": false,
-      "opacity": 0.35
-    },
     "blur": {
       "enabled": false,
       "radius": 5
     },
     "brightness": 100,
-    "contrast": 100
+    "clock_hud": {
+      "enabled": false,
+      "format24h": true,
+      "position": "center",
+      "showSeconds": true,
+      "style": "cyber"
+    },
+    "contrast": 100,
+    "parallax": {
+      "depth": 4,
+      "enabled": true
+    },
+    "particles": {
+      "color": "#7aa2f7",
+      "count": 20,
+      "enabled": true,
+      "speed": 1.0,
+      "style": "dust"
+    },
+    "scanlines": {
+      "enabled": false,
+      "opacity": 0.25
+    },
+    "time_lighting": {
+      "enabled": false,
+      "mode": "manual",
+      "preset": "night"
+    },
+    "vignette": {
+      "enabled": true,
+      "opacity": 0.35
+    },
+    "weather": {
+      "enabled": false,
+      "intensity": "medium",
+      "type": "snow"
+    }
   }
 }

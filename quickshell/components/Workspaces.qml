@@ -1,11 +1,12 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "." as Components
 
 Item {
     id: workspacesRoot
     implicitHeight: 30
-    implicitWidth: Math.max(row.implicitWidth, 30)
+    implicitWidth: Math.max(capsuleBg.width, 30)
 
     property var workspacesList: []
 
@@ -41,30 +42,54 @@ Item {
         }
     }
 
-    Row {
-        id: row
-        spacing: 10
+    // Neo-Glass Capsule Container
+    Rectangle {
+        id: capsuleBg
+        width: row.implicitWidth + 16
+        height: 28
+        radius: 14
+        color: Components.Theme.surface
+        border.color: Components.Theme.border
+        border.width: 1
         anchors.verticalCenter: parent.verticalCenter
-        
-        Repeater {
-            model: workspacesRoot.workspacesList.length
-            delegate: Rectangle {
-                width: workspacesRoot.workspacesList[index].is_focused ? 30 : 10
-                height: 10
-                radius: 5
-                color: workspacesRoot.workspacesList[index].is_focused ? "#7aa2f7" : "#414868"
-                Behavior on width { NumberAnimation { duration: 200 } }
-                Behavior on color { ColorAnimation { duration: 200 } }
-                
-                Process {
-                    id: switchWorkspace
-                    command: ["niri", "msg", "action", "focus-workspace", (workspacesRoot.workspacesList[index] || {}).id ? workspacesRoot.workspacesList[index].id.toString() : ""]
-                }
-                
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        switchWorkspace.running = true
+
+        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on border.color { ColorAnimation { duration: 150 } }
+
+        Row {
+            id: row
+            spacing: 8
+            anchors.centerIn: parent
+            
+            Repeater {
+                model: workspacesRoot.workspacesList.length
+                delegate: Rectangle {
+                    id: wsPill
+                    property bool isFocused: workspacesRoot.workspacesList[index] && workspacesRoot.workspacesList[index].is_focused
+
+                    width: isFocused ? 28 : 8
+                    height: isFocused ? 12 : 8
+                    radius: 6
+                    color: isFocused ? Components.Theme.accent : (wsMouse.containsMouse ? Components.Theme.accentSecondary : Components.Theme.border)
+                    border.color: isFocused ? Components.Theme.accentSecondary : "transparent"
+                    border.width: isFocused ? 1 : 0
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                    Behavior on height { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                    Behavior on color { ColorAnimation { duration: 180 } }
+                    
+                    Process {
+                        id: switchWorkspace
+                        command: ["niri", "msg", "action", "focus-workspace", (workspacesRoot.workspacesList[index] || {}).id ? workspacesRoot.workspacesList[index].id.toString() : ""]
+                    }
+                    
+                    MouseArea {
+                        id: wsMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: switchWorkspace.running = true
                     }
                 }
             }

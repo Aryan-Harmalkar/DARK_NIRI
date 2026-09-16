@@ -1,2 +1,5 @@
 # User-local runtime state — do not commit
 niri/current_wallpaper
+niri/current_theme.json
+niri/bar_style.json
+dark-tools-rs/target/

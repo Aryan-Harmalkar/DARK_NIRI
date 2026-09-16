@@ -47,8 +47,9 @@ The wallpaper subsystem is located in `quickshell/wallpaper-engine/`:
 
 ```
 quickshell/wallpaper-engine/
-├── engine.py                   # Authoritative GTK4 Layer Shell + WebKit engine
-├── wallpaperctl                # Command-line controller & IPC client
+├── wallpaper-engine            # Native Rust GTK4 Layer Shell + WebKit6 engine (from dark-tools-rs)
+├── wallpaperctl                # Command-line controller CLI
+├── wp-ipc                      # Native Rust IPC client & theme scanner binary
 ├── config.json                 # Persistent engine configuration & effect state
 ├── quickshell-wallpaper.service# Systemd user service unit
 └── themes/                     # Self-contained web wallpapers

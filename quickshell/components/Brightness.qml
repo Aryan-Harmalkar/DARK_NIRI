@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "." as Components
 
 Item {
     id: root
@@ -46,13 +47,13 @@ Item {
         
         Text {
             text: "󰃠"
-            color: "#e0af68"
+            color: Components.Theme.warning
             font.pixelSize: 18
             anchors.verticalCenter: parent.verticalCenter
         }
         Text {
             text: root.brightnessLevel
-            color: "#c0caf5"
+            color: Components.Theme.fg
             font.pixelSize: 15
             anchors.verticalCenter: parent.verticalCenter
         }

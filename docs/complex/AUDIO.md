@@ -6,7 +6,11 @@ This document details audio volume management, sink/source muting, and OSD integ
 
 ## 1. Audio Architecture
 
-Dark Niri relies on **PipeWire** with **WirePlumber** as the session manager.
+Dark Niri relies exclusively on **PipeWire** with **WirePlumber** as the session manager.
+
+> [!NOTE]
+> **EasyEffects Removal**:
+> Third-party DSP layers such as EasyEffects have been completely uninstalled and disabled from systemd user services. Audio streams connect directly to hardware ALSA/PulseAudio sinks to ensure zero latency, prevent audio interruptions during track changes, and maintain seamless Spotify playback.
 
 ### 1.1 Volume & Muting Commands
 - **Master Sink Volume**: `wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ <val>%`

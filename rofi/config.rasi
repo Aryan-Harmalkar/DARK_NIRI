@@ -9,14 +9,9 @@ configuration {
 }
 
 @theme "/dev/null"
+@import "theme.rasi"
 
 * {
-    bg: #1a1b26E6; /* 90% opacity tokyo night background */
-    bg-alt: #24283b;
-    fg: #c0caf5;
-    accent: #7aa2f7;
-    border-color: #292e42;
-    
     background-color: transparent;
     text-color: @fg;
     font: "Inter 12";
