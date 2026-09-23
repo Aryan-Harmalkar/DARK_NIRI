@@ -10,7 +10,7 @@ In Niri, `Mod` or `Super` refers to the **Windows key** on your keyboard.
 | :--- | :--- |
 | **Open a Terminal** | `Super + Enter` |
 | **Open App Launcher (Search Apps)** | `Super + Space` |
-| **Close the Active Window** | `Alt + F` |
+| **Close the Active Window** | `Alt + F` / `Super + Q` / `Alt + F4` |
 | **Show All Shortcuts Overlay** | `Super + Shift + /` (or `Super + ?`) |
 | **Quit / Log Out** | `Super + Shift + E` |
 

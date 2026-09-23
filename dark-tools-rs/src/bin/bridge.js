@@ -176,6 +176,9 @@
     if (eff.blur && eff.blur.enabled && eff.blur.radius > 0) filterStr += `blur(${eff.blur.radius}px) `;
     if (eff.brightness && eff.brightness !== 100) filterStr += `brightness(${eff.brightness}%) `;
     if (eff.contrast && eff.contrast !== 100) filterStr += `contrast(${eff.contrast}%) `;
+    if (eff.saturation && eff.saturation !== 100) filterStr += `saturate(${eff.saturation}%) `;
+    if (eff.hue_rotate && eff.hue_rotate !== 0) filterStr += `hue-rotate(${eff.hue_rotate}deg) `;
+    if (eff.invert && eff.invert > 0) filterStr += `invert(${eff.invert}%) `;
     document.documentElement.style.filter = filterStr.trim();
 
     if (!fxContainer) return;
@@ -263,6 +266,33 @@
         });
       }
     }
+
+    // 8. Click Ripples
+    if (eff.click_ripples && eff.click_ripples.enabled) {
+      if (!window.__dn_ripple_listener__) {
+        window.__dn_ripple_listener__ = true;
+        document.addEventListener('click', function(e) {
+          if (!uniConfig || !uniConfig.effects || !uniConfig.effects.click_ripples || !uniConfig.effects.click_ripples.enabled) return;
+          if (!fxContainer) return;
+          const ripple = document.createElement('div');
+          const color = (uniConfig.effects.click_ripples.color) || '#7aa2f7';
+          ripple.style.cssText = 'position:absolute;border-radius:50%;pointer-events:none;border:2px solid ' + color + ';animation:__dn_ripple__ 0.6s ease-out forwards;';
+          ripple.style.left = (e.clientX - 25) + 'px';
+          ripple.style.top = (e.clientY - 25) + 'px';
+          ripple.style.width = '50px';
+          ripple.style.height = '50px';
+          fxContainer.appendChild(ripple);
+          setTimeout(function() { ripple.remove(); }, 650);
+        });
+        // Inject ripple keyframes if not present
+        if (!document.getElementById('__dn_ripple_style__')) {
+          const style = document.createElement('style');
+          style.id = '__dn_ripple_style__';
+          style.textContent = '@keyframes __dn_ripple__ { 0% { transform: scale(0.3); opacity: 0.8; } 100% { transform: scale(3); opacity: 0; } }';
+          document.head.appendChild(style);
+        }
+      }
+    }
   }
 
   function renderUniFx(now) {
@@ -278,6 +308,9 @@
     if (delta < interval) return;
     lastFrameTime = now - (delta % interval);
 
+    // Global speed multiplier
+    const speedMult = (uniConfig && uniConfig.effects && uniConfig.effects.speed_mult) ? uniConfig.effects.speed_mult : 1.0;
+
     // Particles render
     if (partCtx && particles.length > 0) {
       partCtx.clearRect(0, 0, partCanvas.width, partCanvas.height);
@@ -288,8 +321,8 @@
 
       partCtx.fillStyle = color;
       for (let p of particles) {
-        p.x += p.speedX;
-        p.y += p.speedY;
+        p.x += p.speedX * speedMult;
+        p.y += p.speedY * speedMult;
         if (p.y < -10) p.y = partCanvas.height + 10;
         if (p.x < -10) p.x = partCanvas.width + 10;
         if (p.x > partCanvas.width + 10) p.x = -10;
@@ -319,8 +352,8 @@
         weatherCtx.lineWidth = 1.2;
         weatherCtx.beginPath();
         for (let w of weatherItems) {
-          w.y += w.speed;
-          w.x += w.speed * 0.15;
+          w.y += w.speed * speedMult;
+          w.x += w.speed * 0.15 * speedMult;
           if (w.y > weatherCanvas.height) { w.y = -w.len; w.x = Math.random() * weatherCanvas.width; }
           weatherCtx.moveTo(w.x, w.y);
           weatherCtx.lineTo(w.x + w.len * 0.15, w.y + w.len);
@@ -329,8 +362,8 @@
       } else {
         weatherCtx.fillStyle = 'rgba(255, 255, 255, 0.75)';
         for (let w of weatherItems) {
-          w.y += w.speed * 0.3;
-          w.x += Math.sin(w.y * 0.02) * 1.0;
+          w.y += w.speed * 0.3 * speedMult;
+          w.x += Math.sin(w.y * 0.02) * 1.0 * speedMult;
           if (w.y > weatherCanvas.height) { w.y = -10; w.x = Math.random() * weatherCanvas.width; }
           weatherCtx.beginPath();
           weatherCtx.arc(w.x, w.y, w.size, 0, Math.PI * 2);

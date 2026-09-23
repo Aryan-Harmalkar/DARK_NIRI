@@ -28,7 +28,8 @@
 ## ✨ Key Features
 
 - 📜 **Scrollable Column Tiling & Auto-Maximize**: Infinite horizontal workspace ribbon with 33.3%, 50%, and 66.7% preset column widths, plus global automatic column maximization (`default-column-width { proportion 1.0; }`) so all applications launch full-screen width by default.
-- 🎨 **1-Click Whole-System Theme Studio**: One-click instant theme switching via QuickShell Settings GUI (`btn => themes`) or bar button (`󰏘`) across 7 curated presets (Tokyo Night, Catppuccin Mocha, Cyberpunk 2077, Nord Frost, Dracula, Rose Pine, Gruvbox Dark). Synchronizes QuickShell, Niri, Rofi, Fuzzel, Mako, and Wallpaper Engine in real-time.
+- 🎨 **1-Click Whole-System Theme Studio**: One-click instant theme switching via QuickShell Settings GUI (`btn => themes`) across 7 curated presets (Tokyo Night, Catppuccin Mocha, Cyberpunk 2077, Nord Frost, Dracula, Rose Pine, Gruvbox Dark). Synchronizes QuickShell, Niri, Rofi, Fuzzel, Mako, and Wallpaper Engine in real-time.
+- 🔋 **Interactive On-Demand Battery Telemetry**: Hovering the battery icon reveals an on-demand cockpit card with AC connection state, charging rate, battery health percentage, charge cycles, voltage, power draw, and exact duration since plugged in or running on battery (zero idle background polling; strictly on-demand on hover).
 - 🐚 **Dynamic Multi-Style Status Bar (`shell.qml`)**: 4 selectable bar styles with 1-click in-GUI switching:
   - **Floating**: Unified neo-glass island dock with rounded corners (`radius: 22`), frosted glass sheen highlight, and glowing borders.
   - **Islands**: Split 3-piece modular capsules for Left, Center, and Right over a transparent desktop.
@@ -38,14 +39,18 @@
 - ⚙️ **Integrated Bento Control Center (`Settings.qml`)**: Bento box layout providing quick toggles, master volume/brightness sliders, 1-click Theme Studio, 1-click Bar Style switcher, and interactive modal dialogs.
 - ⚡ **100% Native Rust Migration (`dark-tools-rs`)**: Zero Python runtime dependencies for system utilities. High-performance native Rust binaries for network tracking (`net-tracker`), daily logging (`daily-network-logger`), Wi-Fi (`wifi`), Bluetooth (`bluetooth`), notifications (`notifications`), theme orchestrator (`theme-manager`), and background engine (`wallpaper-engine`).
 - 📶 **Wi-Fi Manager with WPS Support**: Scans networks, prompts for credentials, and interrogates D-Bus AP flags for instant WPS pairing.
-- 🖼️ **Modular HTML/Web Wallpaper Engine**: Hardware-accelerated native background engine powered by `gtk4-layer-shell`, `webkit6`, and `dark-tools-rs`. Renders interactive HTML5/WebGL themes (`cyber-city`, `aurora`, `particles`, `waves`) and media with real-time effects customizer.
+- 🖼️ **Modular HTML/Web Wallpaper Engine**: Hardware-accelerated native background engine powered by `gtk4-layer-shell`, `webkit6`, and `dark-tools-rs`. Renders interactive HTML5/WebGL themes (`anime-sakura`, `lofi-anime-room`, `celestial-nebula`, `cyber-city`, `aurora`, `particles`, `waves`), media, and external web canvases with zero-SSD RAM caching, master ON/OFF switches, live thumbnail preview cards, 30–144 FPS limits, and an extensive effects customizer (particles, parallax, speed multiplier, click ripples, hue/saturation, CRT scanlines).
+- 🚀 **Advanced 3D WebGL Wallpapers (Three.js + Anime.js)**: Features an orchestration framework and reusable template system for highly optimized, interactive 3D anime backgrounds with dynamic mouse parallax, battery-aware FPS throttling, and automated GPU memory cleanup.
+- 🤖 **Multi-Agent Orchestration Framework**: Includes a local `.agents/` directory defining autonomous agent roles (`planner`, `designer`, `builder`, `tester`, `review`, `supervisor`) and slash-commands for architecting and building Wayland-native features.
 - 📊 **Real-Time Hardware Telemetry**: Live CPU %, thermals, fan RPM, RAM usage, CPU package power (PPT in Watts), real-time total system power draw (Watts, measuring battery V×A or APU PPT + dGPU), live NVMe SSD disk read/write throughput and cumulative boot I/O, system uptime (`Xd Xh Xm`), persistent daily/monthly network data usage, AMD iGPU, and zero-wake NVIDIA dGPU telemetry.
 - 🎵 **MPRIS Media Player**: Dancing equalizer visualizer bars on bar, album art preview, hover controls, previous/play/pause/next, and position seeking. Pure PipeWire/WirePlumber routing ensures zero Spotify stutter or automatic pause.
+- 🔇 **Automatic Spotify Ad Muter** (`mute-spotify-ads.sh`): Monitors Spotify's MPRIS trackid via `playerctl --follow` and silently mutes only the Spotify PulseAudio/PipeWire stream during advertisements (`/com/spotify/ad/`), unmuting instantly when music resumes. Zero CPU polling, auto-retries if Spotify isn't running.
 - 📹 **Screencasting Controller**: Region screen recording with live pulse indicator and pause/resume capabilities (`wf-recorder`).
 - 🔔 **Interactive Notification Center**: Backed by `mako` and native Rust backend with per-item dismissal and batch clear.
 - 📋 **Clipboard History**: `Super + V` powered by `cliphist`, `wl-clipboard`, and `rofi`.
 - 📝 **Session Edit Logging**: Audited modification history tracked systematically in `Edited/` (`changes/`, `fixes/`, `updates/`, `new-features/`).
 - 🧹 **Cache & SSD Write Minimization**: RAM-backed scratch redirection (`/tmp`), debounced auto-saves, diagnostic logging suppression (`--log=error`), local history rate-limiting, and automated daily hygiene cleanup (`niri/cleanup.sh`, systemd timer) to preserve NVMe SSD lifespan.
+- 🐚 **Advanced Animated Zsh Environment**: Production-quality modular shell with 20+ focused modules, Tokyo Night two-line contextual prompt (Git status, venv, SSH, timer), startup animations, smart aliases (`eza`/`bat`/`fd`/`rg` with auto-fallback), fzf fuzzy search, zoxide navigation, safety guards, Arch package helpers, system diagnostics (`zsh-doctor`, `sysinfo`), and feature toggles via [`config.zsh`](zsh/CONFIGURATION.md). See [`zsh/README.md`](zsh/README.md) for details.
 
 ---
 
@@ -85,7 +90,7 @@ chmod +x deploy.sh uninstall.sh
 | `Super + Return` | Open Terminal | `alacritty` |
 | `Super + Space` | Application Launcher | `rofi -show drun` |
 | `Super + V` | Clipboard History | `cliphist list \| rofi` |
-| `Alt + F` | Close Window | `close-window` |
+| `Alt + F` / `Super + Q` / `Alt + F4` | Close Window | `close-window` |
 | `Super + F` | Maximize Column Width | `maximize-column` |
 | `Super + Shift + F` | Fullscreen Window | `fullscreen-window` |
 | `Super + Left / Right` | Focus Column Left / Right | `focus-column-left/right` |

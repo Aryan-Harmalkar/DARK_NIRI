@@ -53,13 +53,22 @@ quickshell/wallpaper-engine/
 ├── config.json                 # Persistent engine configuration & effect state
 ├── quickshell-wallpaper.service# Systemd user service unit
 └── themes/                     # Self-contained web wallpapers
+    ├── anime-sakura/           # Drifting cherry blossom petals with Mt. Fuji & warm lantern glow
+    ├── anime-showcase/         # Interactive anime character showcase with auto-timer, stat cards & widgets
+    ├── one-piece-crew/         # Animated One Piece Straw Hat crew showcase with 10 members in join order, live bounties & widgets
+    ├── lofi-anime-room/        # Cozy anime study desk with ambient window rain & soft lighting
+    ├── celestial-nebula/       # Deep cosmos with rotating galaxies, twinkling stars & nebula clouds
     ├── cyber-city/             # Animated cyberpunk metropolis with skyline & HUD
     ├── aurora/                 # Fluid northern lights ribbons
     ├── cyber-matrix/           # Tokyo Night digital code stream
     ├── particles/              # Interactive constellation particle network
     ├── waves/                  # Layered harmonic sine waves
     ├── fallback/               # Safe Tokyo Night radial gradient
-    └── image-viewer/           # Universal wrapper for images & videos with live FX
+    ├── image-viewer/           # Universal wrapper for images & videos with live FX
+    ├── anime-3d-showcase/      # 3D Anime Cel-shaded procedural crystal with Niri parallax
+    ├── html-wallpaper-template/# Reusable Three.js + Anime.js template with optimization
+    ├── anime-pirate-crew/      # 3D Anime pirate ship & ocean with mouse parallax
+    └── anime-cyberpunk-3d/     # 3D Neon cyberpunk city with glowing rain particles
 ```
 
 ---
@@ -186,9 +195,11 @@ The `wallpaperctl` utility provides complete control over the wallpaper engine:
 | `wallpaperctl stop` | Stops the engine daemon cleanly |
 | `wallpaperctl restart` | Restarts the engine daemon |
 | `wallpaperctl status` | Shows engine status, PID, monitors, active target, and effects |
-| `wallpaperctl list` | Returns a JSON list of all available themes and wallpapers |
-| `wallpaperctl set <theme_or_path>` | Applies a web theme or wallpaper image/video |
-| `wallpaperctl set <theme_or_path> <mon>`| Sets wallpaper on a specific display (e.g. `eDP-1`) |
+| `wallpaperctl list` | Returns a JSON list of all available themes, wallpapers, and custom HTML items |
+| `wallpaperctl set <theme_or_path_or_url>` | Applies a web theme, wallpaper image/video, or external HTML/URL |
+| `wallpaperctl set <target> <mon>`| Sets wallpaper on a specific display (e.g. `eDP-1`) |
+| `wallpaperctl add <path_or_url> [name]` | Registers an external HTML file or live web canvas into the gallery |
+| `wallpaperctl remove <path_or_url>` | Removes a registered external HTML wallpaper from the gallery |
 | `wallpaperctl color <#hex>` | Sets a solid Tokyo Night canvas background |
 | `wallpaperctl set-effect <key> <val>` | Dynamically tunes effects live (e.g. `particles.count 60`) |
 | `wallpaperctl random` | Picks and applies a random wallpaper or theme |
@@ -199,24 +210,36 @@ The `wallpaperctl` utility provides complete control over the wallpaper engine:
 
 ## 6. QuickShell Settings GUI Studio
 
-Click the **Gear icon** on the top bar or open Control Center -> **Web Wallpaper Studio**:
+Click the **Gear icon** on the top bar or open Control Center -> **Wallpaper Studio**:
 
-1. **Web Themes Tab**: Interactive card gallery showing all self-contained web themes with badges (`Interactive`, `WebGL`).
-2. **Wallpapers Tab**: Browse your local wallpaper pictures and animated videos from `~/Pictures/Wallpapers/`.
-3. **Effects & FX Customizer**:
+1. **Master Engine ON/OFF Toggle**:
+   - Integrated hardware toggle switch directly in the Settings Wallpaper tile banner and the Studio modal header.
+   - Allows instant starting (`wallpaperctl start`) or graceful stopping (`wallpaperctl stop`) of the background engine process without touching the terminal.
+2. **Web Themes Tab with Live Visual Previews**:
+   - Interactive card gallery featuring rich graphical thumbnail previews (`preview.png`) for themes like **Anime Sakura**, **Lofi Anime Room**, and **Celestial Nebula**, with gradient fallback for abstract themes.
+   - Shows badges (`INTERACTIVE`, `EXTERNAL HTML`, `WEB CANVAS`) and active checkmark indicator. Includes quick-action delete button for custom registered wallpapers.
+3. **Add HTML Wallpaper Dialog**: Click `[+ Add HTML]` in the studio header to seamlessly import any local `.html` file or live WebGL canvas URL with instant registration.
+4. **Wallpapers Tab**: Browse local wallpaper pictures and animated videos from `~/Pictures/Wallpapers/`.
+5. **Zero SSD Wear Ephemeral Session**: Backed by `webkit6::NetworkSession::new_ephemeral()`, storing all HTML5 canvas buffers, caches, and DOM data strictly in RAM with 0 physical disk writes.
+6. **Effects & FX Customizer**:
    - **Floating Particles**: Toggle on/off, choose style (`Embers`, `Dust`, `Nodes`), count (`20`, `40`, `80`, `120`), and color presets.
    - **Mouse Parallax**: Toggle on/off, select depth intensity (`Subtle 1.5x`, `Normal 2.5x`, `Dynamic 4.0x`).
    - **Time-of-Day Lighting**: Solar color grading (`Auto`, `Dawn`, `Day`, `Sunset`, `Night`).
    - **Weather Overlay**: Realistic procedural rain or snow simulation.
    - **Cyber HUD Clock**: On-screen digital time and date HUD (`Top-Right`, `Top-Left`, `Center`, 24h, Seconds).
    - **Scanlines & Vignette**: CRT phosphor lines and edge shadowing.
-   - **Post-Processing**: Hardware blur, brightness, and contrast.
-4. **Performance & Profiles**:
+   - **Post-Processing**: Hardware blur, brightness, contrast.
+   - **Color Saturation & Hue Rotation**: Saturation booster (`50%`, `100%`, `150%`, `200%`) and 360° chromatic hue rotator (`0°`, `90°`, `180°`, `270°`).
+   - **Animation Speed Multiplier**: Global timescale controller for particle dynamics, weather physics, and shader motion (`0.5x`, `1.0x`, `1.5x`, `2.0x`).
+   - **Interactive Click Ripples**: Spawns reactive pulsing energy wave ripples on desktop mouse clicks with selectable accent colors.
+   - **Negative Invert Mode**: Cyberpunk inverted luminance styling (`Off`, `25%`, `50%`, `100%`).
+7. **Performance & Engine Telemetry**:
    - Profiles: `Battery Saver` (30 FPS, Minimal FX), `Balanced` (60 FPS), `Performance` (120+ FPS).
+   - **Framerate Limit (FPS)**: Dedicated refresh rate selector buttons (`30 FPS`, `60 FPS`, `90 FPS`, `120 FPS`, `144 FPS`) to optimize high-refresh gaming displays.
    - Intelligent Fullscreen Pause toggle (auto-pauses when a fullscreen game/app covers the monitor).
    - Laptop Battery Throttle toggle.
    - Telemetry monitoring and quick actions (`Reload`, `Restart`, `Random`).
-5. **Canvas Colors Tab**: Palette of solid Tokyo Night backgrounds.
+8. **Canvas Colors Tab**: Palette of solid Tokyo Night backgrounds.
 
 ---
 
@@ -238,3 +261,27 @@ The engine is engineered for ultra-low resource consumption on Arch Linux with h
 - **Dynamic Render Throttling**: All theme and effect canvas loops throttle animation to the target FPS (30 FPS on battery saver, 60 FPS on balanced, 120 FPS on performance).
 - **Intelligent Fullscreen Pause**: Automatically suspends render loops when an active window covers the display.
 - **Instant Optimistic Reactivity**: QuickShell Settings updates state instantaneously in QML before asynchronous IPC commits, delivering snappy 60fps toggle animations.
+
+## 9. 3D WebGL Framework (Three.js + Anime.js)
+
+The wallpaper engine features a heavily optimized, modular 3D framework for rendering interactive Wayland backgrounds without draining laptop batteries. 
+
+### Architecture
+- **`themes/shared/engine-core.js`**: A shared central module that abstracts WebGL initialization, `THREE.WebGLRenderer` context loss/restore, and memory disposal (`dispose()` calls on geometries, materials, and textures).
+- **Offline First**: All libraries (`three.min.js`, `anime.min.js`) are bundled locally in `themes/shared/lib/`. No remote CDNs are required.
+
+### Performance & Battery Profiles
+The engine intelligently listens to `window.wallpaper.on('battery', ...)` and `window.__isWallpaperObscured`:
+- **AC / High Performance**: 60+ FPS, high-resolution device pixel ratios.
+- **Battery Saver (< 30%)**: Throttles `requestAnimationFrame` delta to 30 FPS, halves resolution, and disables expensive post-processing/particles.
+- **Obscured State**: If Niri maximizes a window over the desktop, the WebGL render loop elegantly pauses to consume 0% GPU.
+
+### Template & Theme Creation
+To create a new 3D wallpaper, duplicate `themes/html-wallpaper-template`.
+The template strictly separates logic into:
+- `index.html` (Shell and UI overlays)
+- `theme.js` (Three.js scene generation and Anime.js choreography)
+- `wallpaper.json` (Quickshell Metadata)
+
+### Agent Orchestration
+This architecture was generated, built, and audited by a specialized multi-agent framework located in `.agents/`. The framework orchestrates `planner`, `designer`, `builder`, `tester`, and `review` agents to rigorously ensure zero memory leaks and Wayland compatibility.

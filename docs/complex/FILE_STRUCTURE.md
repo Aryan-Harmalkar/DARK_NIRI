@@ -60,6 +60,7 @@ DARK_NIRI/
 │   ├── theme.json                  # Active theme color tokens and metadata
 │   ├── bar_style.json              # Active bar style state (floating, islands, normal, compact)
 │   ├── reload-shell.sh             # Safe shell reload preserving MPRIS playback
+│   ├── clock-info.sh               # Timezone, uptime, and NTP sync telemetry gatherer
 │   ├── shell.qml                   # Dynamic multi-style status bar panel
 │   ├── media.sh                    # MPRIS media metadata extraction script (Bash)
 │   ├── powerprofile.sh             # Power profile switcher & cycler (Bash)
@@ -75,7 +76,7 @@ DARK_NIRI/
 │   │   ├── Battery.qml             # Neo-glass battery pill with charging indicator
 │   │   ├── Bluetooth.qml           # Top bar Bluetooth status indicator
 │   │   ├── Brightness.qml          # Top bar display brightness indicator
-│   │   ├── Clock.qml               # Dual-tone typography date and time pill
+│   │   ├── Clock.qml               # Dual-tone pill with interactive calendar, timezone, and temporal cockpit
 │   │   ├── Media.qml               # Dynamic dancing equalizer bars, album art, playback controls
 │   │   ├── Mic.qml                 # Top bar microphone mute indicator
 │   │   ├── Network.qml             # Top bar Wi-Fi SSID / connection indicator

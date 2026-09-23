@@ -20,8 +20,14 @@ The top bar provides instant access to everything on your system.
 - **Wi-Fi Icon**: Shows current Wi-Fi name or "Disconnected".
 - **Bluetooth Icon**: Shows connected headphones/mouse.
 - **Brightness & Volume**: Live percentage indicators.
-- **Battery**: Live battery percentage with charging lightning bolt icon.
-- **Gear Icon (Settings)**: Opens the full Control Center!
+- **Battery**: Live battery percentage with charging lightning bolt icon. **Hover over the battery icon** to view the on-demand telemetry card:
+  - Plugged in / on battery status with AC connection badge
+  - Charging state, charge rate in Watts, and charge threshold limits
+  - Battery health percentage with visual capacity bar
+  - Charge cycle count
+  - Elapsed duration & timestamp ("Connected Since 17:21" or "On Battery Since 18:05")
+  - Live voltage and power consumption (strictly active on hover with 0% idle background usage)
+- **Gear Icon (Settings)**: Opens the full Control Center, including the 1-Click Theme Studio, Bar Style Switcher, and system controls!
 
 ---
 

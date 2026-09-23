@@ -23,6 +23,25 @@ extern "C" {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+struct CustomWallpaper {
+    name: String,
+    path: String,
+    #[serde(default)]
+    thumb: String,
+    #[serde(rename = "type", default = "default_custom_type")]
+    item_type: String,
+    #[serde(default = "default_custom_desc")]
+    description: String,
+}
+
+fn default_custom_type() -> String {
+    "html".to_string()
+}
+fn default_custom_desc() -> String {
+    "External HTML Wallpaper".to_string()
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Config {
     #[serde(default = "default_active")]
     active: String,
@@ -42,6 +61,8 @@ struct Config {
     pause_fullscreen: bool,
     #[serde(default = "default_effects")]
     effects: Value,
+    #[serde(default)]
+    custom_wallpapers: Vec<CustomWallpaper>,
 }
 
 fn default_active() -> String {
@@ -121,6 +142,7 @@ impl Default for Config {
             battery_saver: default_true(),
             pause_fullscreen: default_true(),
             effects: default_effects(),
+            custom_wallpapers: Vec::new(),
         }
     }
 }
@@ -128,6 +150,7 @@ impl Default for Config {
 struct MonitorWindow {
     win: gtk4::ApplicationWindow,
     view: webkit6::WebView,
+    _session: Option<webkit6::NetworkSession>,
     current_url: Option<String>,
 }
 
@@ -235,12 +258,48 @@ impl EngineState {
             );
         }
 
-        if !Path::new(t).is_absolute() {
+        // Web URLs & inline data
+        if t.starts_with("http://") || t.starts_with("https://") || t.starts_with("data:text/html") {
+            return t.to_string();
+        }
+
+        // Direct file URI
+        if let Some(rest) = t.strip_prefix("file://") {
+            let p = Path::new(rest);
+            if p.is_dir() && p.join("index.html").exists() {
+                return format!("file://{}/index.html", rest.trim_end_matches('/'));
+            }
+            return t.to_string();
+        }
+
+        // Absolute path check
+        let p = Path::new(t);
+        if p.is_absolute() && p.exists() {
+            if p.is_dir() && p.join("index.html").exists() {
+                return format!("file://{}/index.html", p.to_string_lossy().trim_end_matches('/'));
+            }
+            let ext = p.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+            if ext == "html" || ext == "htm" {
+                return format!("file://{}", p.to_string_lossy());
+            }
+        }
+
+        // Theme check
+        if !p.is_absolute() {
             let theme_path = self.themes_dir.join(t);
             if theme_path.is_dir() {
                 let index = theme_path.join("index.html");
                 if index.exists() {
                     return format!("file://{}", index.to_string_lossy());
+                }
+            }
+
+            // Wallpapers directory HTML check
+            let wall_cand = self.wallpapers_dir.join(t);
+            if wall_cand.exists() {
+                let ext = wall_cand.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+                if ext == "html" || ext == "htm" {
+                    return format!("file://{}", wall_cand.to_string_lossy());
                 }
             }
         }
@@ -321,7 +380,8 @@ impl EngineState {
         win.set_exclusive_zone(-1);
         win.set_monitor(monitor);
 
-        let view = webkit6::WebView::new();
+        let session = webkit6::NetworkSession::new_ephemeral();
+        let view = webkit6::WebView::builder().network_session(&session).build();
         if let Some(settings) = webkit6::prelude::WebViewExt::settings(&view) {
             settings.set_enable_javascript(true);
             settings.set_enable_webgl(true);
@@ -354,8 +414,9 @@ impl EngineState {
                     s.apply_effects_to_view(wv);
                     s.push_state_to_view(wv);
 
+                    let current_uri = wv.uri().map(|u| u.to_string()).unwrap_or_default();
                     let target = s.get_target_for_monitor(&conn_clone);
-                    if !target.starts_with("color:") && (Path::new(&target).is_absolute() || Path::new(&target).exists()) {
+                    if current_uri.contains("image-viewer") && !target.starts_with("color:") && (Path::new(&target).is_absolute() || Path::new(&target).exists()) {
                         let file_uri = if target.starts_with("file://") {
                             target
                         } else {
@@ -380,6 +441,7 @@ impl EngineState {
         let info = MonitorWindow {
             win: win.clone(),
             view,
+            _session: Some(session),
             current_url: None,
         };
 
@@ -432,6 +494,59 @@ impl EngineState {
         }
     }
 
+    fn derive_name_from_path(p: &str) -> String {
+        if p.starts_with("http://") || p.starts_with("https://") {
+            if let Some(url_stripped) = p.split("://").nth(1) {
+                let segments: Vec<&str> = url_stripped.split('/').filter(|s| !s.is_empty()).collect();
+                if let Some(last) = segments.last() {
+                    if !last.is_empty() && last.contains('.') {
+                        return last.split('.').next().unwrap_or(last).replace('-', " ").to_string();
+                    }
+                }
+                if let Some(host) = segments.first() {
+                    return host.to_string();
+                }
+            }
+            return "Web Wallpaper".to_string();
+        }
+
+        let path = Path::new(p.strip_prefix("file://").unwrap_or(p));
+        if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+            return stem.replace('-', " ").replace('_', " ");
+        }
+        "HTML Wallpaper".to_string()
+    }
+
+    fn add_custom_wallpaper(&mut self, path_or_url: &str, name_opt: Option<&str>) -> Value {
+        if path_or_url.is_empty() {
+            return json!({"status": "error", "message": "Empty path or URL"});
+        }
+        let clean = path_or_url.trim().to_string();
+        let name = if let Some(n) = name_opt {
+            if !n.trim().is_empty() { n.trim().to_string() } else { Self::derive_name_from_path(&clean) }
+        } else {
+            Self::derive_name_from_path(&clean)
+        };
+
+        self.config.custom_wallpapers.retain(|c| c.path != clean);
+        self.config.custom_wallpapers.push(CustomWallpaper {
+            name: name.clone(),
+            path: clean.clone(),
+            thumb: String::new(),
+            item_type: "html".to_string(),
+            description: "External HTML / Canvas Wallpaper".to_string(),
+        });
+        self.save_config();
+        json!({"status": "ok", "name": name, "path": clean})
+    }
+
+    fn remove_custom_wallpaper(&mut self, path_or_url: &str) -> Value {
+        let clean = path_or_url.trim();
+        self.config.custom_wallpapers.retain(|c| c.path != clean);
+        self.save_config();
+        json!({"status": "ok"})
+    }
+
     fn set_target(&mut self, target_opt: Option<&str>, monitor_opt: Option<&str>) -> Value {
         let target_str = match target_opt {
             Some(t) if !t.is_empty() => t,
@@ -439,9 +554,19 @@ impl EngineState {
         };
 
         let mut target = target_str.to_string();
+        let lower = target.to_lowercase();
+        let is_remote_or_data = lower.starts_with("http://")
+            || lower.starts_with("https://")
+            || lower.starts_with("data:text/html");
 
-        if !target.starts_with("color:") && !self.themes_dir.join(&target).exists() {
-            if !Path::new(&target).exists() {
+        if !target.starts_with("color:") && !is_remote_or_data && !self.themes_dir.join(&target).exists() {
+            let test_path = if let Some(stripped) = target.strip_prefix("file://") {
+                Path::new(stripped)
+            } else {
+                Path::new(&target)
+            };
+
+            if !test_path.exists() {
                 let cand = self.wallpapers_dir.join(&target);
                 if cand.exists() {
                     target = cand.to_string_lossy().to_string();
@@ -450,6 +575,11 @@ impl EngineState {
                 }
             }
         }
+
+        let is_html = is_remote_or_data
+            || lower.ends_with(".html")
+            || lower.ends_with(".htm")
+            || (Path::new(&target).is_dir() && Path::new(&target).join("index.html").exists());
 
         if let Some(mon) = monitor_opt {
             if self.windows.contains_key(mon) {
@@ -464,8 +594,11 @@ impl EngineState {
                 self.config.active_type = "color".to_string();
             } else if !Path::new(&target).is_absolute() && self.themes_dir.join(&target).is_dir() {
                 self.config.active_type = "theme".to_string();
+            } else if is_html {
+                self.config.active_type = "html".to_string();
             } else {
-                self.config.active_type = "image".to_string();
+                let is_vid = lower.ends_with(".mp4") || lower.ends_with(".webm") || lower.ends_with(".mkv");
+                self.config.active_type = if is_vid { "video".to_string() } else { "image".to_string() };
             }
         }
 
@@ -580,7 +713,7 @@ impl EngineState {
             }
         }
 
-        // 2. Wallpapers dir
+        // 2. Wallpapers dir (images, videos, and html)
         if let Ok(entries) = fs::read_dir(&self.wallpapers_dir) {
             let mut files: Vec<_> = entries.filter_map(|e| e.ok()).collect();
             files.sort_by_key(|e| e.file_name());
@@ -591,19 +724,37 @@ impl EngineState {
                     let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
                     let is_img = ["jpg", "jpeg", "png", "webp"].contains(&ext.as_str());
                     let is_vid = ["mp4", "webm", "mkv", "gif"].contains(&ext.as_str());
-                    if is_img || is_vid {
+                    let is_html = ["html", "htm"].contains(&ext.as_str());
+                    if is_img || is_vid || is_html {
                         let fname = path.file_name().unwrap_or_default().to_string_lossy().to_string();
                         let p_str = path.to_string_lossy().to_string();
+                        let item_type = if is_html { "html" } else if is_vid { "video" } else { "image" };
+                        let desc = if is_html { "External HTML Wallpaper" } else if is_vid { "Live Video Wallpaper" } else { "Static Image" };
                         list.push(json!({
                             "name": fname,
                             "path": p_str,
-                            "thumb": p_str,
-                            "type": if is_vid { "video" } else { "image" },
-                            "description": if is_vid { "Live Video Wallpaper" } else { "Static Image" }
+                            "thumb": if is_html { "" } else { &p_str },
+                            "type": item_type,
+                            "description": desc,
+                            "interactive": is_html,
+                            "audioReactive": false
                         }));
                     }
                 }
             }
+        }
+
+        // 3. Custom Registered Wallpapers
+        for cw in &self.config.custom_wallpapers {
+            list.push(json!({
+                "name": cw.name,
+                "path": cw.path,
+                "thumb": cw.thumb,
+                "type": cw.item_type,
+                "description": cw.description,
+                "interactive": true,
+                "audioReactive": false
+            }));
         }
 
         json!(list)
@@ -834,6 +985,15 @@ impl EngineState {
                     "effects": self.config.effects
                 })
             }
+            "add_html" | "add_custom" => {
+                let target = msg.get("target").or_else(|| msg.get("path")).or_else(|| msg.get("value")).and_then(|v| v.as_str()).unwrap_or("");
+                let name = msg.get("name").and_then(|v| v.as_str());
+                self.add_custom_wallpaper(target, name)
+            }
+            "remove_custom" => {
+                let target = msg.get("target").or_else(|| msg.get("path")).or_else(|| msg.get("value")).and_then(|v| v.as_str()).unwrap_or("");
+                self.remove_custom_wallpaper(target)
+            }
             "reload" => {
                 self.apply_all();
                 json!({"status": "reloaded"})
@@ -896,6 +1056,8 @@ fn handle_client(mut stream: UnixStream, ipc_tx: mpsc::Sender<IpcRequest>) {
             } else {
                 let _ = writeln!(stream, "{}", res_val);
             }
+            let _ = stream.flush();
+            let _ = stream.shutdown(std::net::Shutdown::Write);
         }
     }
 }

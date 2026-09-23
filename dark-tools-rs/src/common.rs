@@ -1,5 +1,24 @@
 use std::fs;
+use std::io::{self, Write};
 use std::path::Path;
+
+#[cfg(unix)]
+pub fn ignore_sigpipe() {
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_IGN);
+    }
+}
+
+pub fn safe_println(msg: &str) {
+    let stdout = io::stdout();
+    let mut handle = stdout.lock();
+    let _ = writeln!(handle, "{}", msg);
+}
+
+pub fn safe_print_json<T: serde::Serialize>(val: &T) {
+    let out = serde_json::to_string(val).unwrap_or_else(|_| "{}".to_string());
+    safe_println(&out);
+}
 
 pub fn get_boot_id() -> String {
     fs::read_to_string("/proc/sys/kernel/random/boot_id")

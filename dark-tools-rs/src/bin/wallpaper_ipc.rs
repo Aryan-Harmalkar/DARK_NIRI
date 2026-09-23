@@ -1,3 +1,6 @@
+#[path = "../common.rs"]
+mod common;
+
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -18,10 +21,9 @@ fn send_ipc(socket_path: &str, payload: &str) -> bool {
         return false;
     }
 
-    let mut buf = vec![0u8; 65536];
-    match stream.read(&mut buf) {
-        Ok(n) if n > 0 => {
-            let res = String::from_utf8_lossy(&buf[..n]);
+    let mut res = String::new();
+    match stream.read_to_string(&mut res) {
+        Ok(_) if !res.trim().is_empty() => {
             println!("{}", res.trim());
             true
         }
@@ -36,7 +38,7 @@ fn list_items(themes_dir: &str, wall_dir: &str) {
     if let Ok(entries) = fs::read_dir(themes_dir) {
         let mut t_names: Vec<String> = entries
             .flatten()
-            .filter(|e| e.path().is_dir() && e.file_name() != "image-viewer")
+            .filter(|e| e.path().is_dir() && e.file_name() != "image-viewer" && e.file_name() != "fallback")
             .filter_map(|e| e.file_name().into_string().ok())
             .collect();
         t_names.sort();
@@ -64,9 +66,9 @@ fn list_items(themes_dir: &str, wall_dir: &str) {
         }
     }
 
-    // 2. Read wallpapers
+    // 2. Read wallpapers (images, videos, and html)
     if let Ok(entries) = fs::read_dir(wall_dir) {
-        let exts = ["jpg", "jpeg", "png", "webp", "mp4", "webm", "mkv"];
+        let exts = ["jpg", "jpeg", "png", "webp", "mp4", "webm", "mkv", "html", "htm"];
         let mut paths: Vec<PathBuf> = entries
             .flatten()
             .map(|e| e.path())
@@ -83,12 +85,13 @@ fn list_items(themes_dir: &str, wall_dir: &str) {
             if let Some(file_name) = p.file_name().and_then(|n| n.to_str()) {
                 let lower = file_name.to_lowercase();
                 let is_vid = lower.ends_with(".mp4") || lower.ends_with(".webm") || lower.ends_with(".mkv");
+                let is_html = lower.ends_with(".html") || lower.ends_with(".htm");
                 let p_str = p.to_string_lossy().to_string();
                 items.push(serde_json::json!({
                     "name": file_name,
                     "path": p_str,
-                    "thumb": p_str,
-                    "type": if is_vid { "video" } else { "image" }
+                    "thumb": if is_html { "" } else { &p_str },
+                    "type": if is_html { "html" } else if is_vid { "video" } else { "image" }
                 }));
             }
         }
@@ -124,6 +127,8 @@ fn pick_random(items_json: &str) {
 }
 
 fn main() {
+    common::ignore_sigpipe();
+
     let args: Vec<String> = env::args().collect();
     let action = args.get(1).map(|s| s.as_str()).unwrap_or("");
 

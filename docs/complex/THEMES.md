@@ -2,7 +2,7 @@
 
 Dark Niri features an atomic **1-Click Whole-System Theme Engine** driven by native Rust (`theme-manager`) and QuickShell reactive state (`Theme.qml`).
 
-A single click in the QuickShell Settings GUI (`btn => themes`) or bar quick button (`󰏘`) instantly synchronizes the entire desktop suite in real-time without restarting your session.
+A single click in the QuickShell Settings GUI (`btn => themes` / Theme Studio banner) instantly synchronizes the entire desktop suite in real-time without restarting your session.
 
 ---
 
@@ -12,7 +12,7 @@ When a theme is activated, `theme-manager` updates all desktop subsystems simult
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│   QuickShell Settings GUI: Themes Button (󰏘)           │
+│   QuickShell Settings GUI: Theme Studio Banner         │
 │   (Click opens interactive Theme Studio Modal)         │
 └───────────────────────────┬────────────────────────────┘
                             │

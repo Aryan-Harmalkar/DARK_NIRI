@@ -1,0 +1,11 @@
+{
+  "name": "Anime Character Showcase",
+  "version": "1.0.0",
+  "author": "DARK_NIRI",
+  "entry": "index.html",
+  "description": "Interactive animated anime character showcase with auto-timer carousel, stat cards, chibi mascot, and analog clock widget",
+  "fps": 60,
+  "interactive": true,
+  "audioReactive": false,
+  "multiMonitor": true
+}

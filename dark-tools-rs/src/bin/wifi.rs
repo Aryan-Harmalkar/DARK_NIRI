@@ -1,3 +1,6 @@
+#[path = "../common.rs"]
+mod common;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::env;
@@ -308,13 +311,15 @@ fn toggle() {
 }
 
 fn main() {
+    common::ignore_sigpipe();
+
     let args: Vec<String> = env::args().collect();
     let action = args.get(1).map(|s| s.as_str()).unwrap_or("list");
 
     match action {
         "list" => {
             let status = get_wifi();
-            println!("{}", serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string()));
+            common::safe_print_json(&status);
         }
         "toggle" => {
             toggle();
@@ -346,11 +351,11 @@ fn main() {
         "rescan" => {
             let _ = Command::new("nmcli").args(["dev", "wifi", "rescan"]).output();
             let status = get_wifi();
-            println!("{}", serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string()));
+            common::safe_print_json(&status);
         }
         _ => {
             let status = get_wifi();
-            println!("{}", serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string()));
+            common::safe_print_json(&status);
         }
     }
 }

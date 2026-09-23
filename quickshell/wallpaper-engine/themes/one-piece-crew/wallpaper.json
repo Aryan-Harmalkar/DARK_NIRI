@@ -1,0 +1,11 @@
+{
+  "name": "One Piece: Straw Hat Pirates",
+  "version": "1.0.0",
+  "author": "DARK_NIRI",
+  "entry": "index.html",
+  "description": "Interactive animated One Piece wallpaper featuring the 10 Straw Hat crew members in join order, live bounty stats, analog clock, and custom carousel timer",
+  "fps": 60,
+  "interactive": true,
+  "audioReactive": false,
+  "multiMonitor": true
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Anime Sakura",
+  "id": "anime-sakura",
+  "version": "1.0",
+  "author": "DARK_NIRI",
+  "description": "Falling cherry blossom petals over a twilight anime skyline with warm gradients.",
+  "entry": "index.html",
+  "type": "theme",
+  "interactive": true
+}

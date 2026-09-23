@@ -14,6 +14,7 @@ This document audits all shell scripts and native Rust utility binaries in the r
 | `niri/cleanup.sh` | Bash | Cache & scratch hygiene script, purges stale logs/dumps to save SSD writes | Yes |
 | `niri/osd.sh` | Bash | Dispatches synchronous in-place OSD notifications for volume/brightness | Yes |
 | `quickshell/reload-shell.sh` | Bash | Safe QuickShell restart preserving active MPRIS playback state | Yes |
+| `quickshell/clock-info.sh` | Bash | Gathers system timezone, UTC offset, system uptime, and NTP sync status | Yes |
 | `quickshell/theme-manager` | Rust (`dark-tools-rs`) | 1-Click atomic whole-system theme orchestrator & bar style manager | Yes |
 | `quickshell/bluetooth` (`bluetooth.sh`) | Rust (`dark-tools-rs`) | Bluetooth device discovery, pairing, battery %, and audio profiles | Yes |
 | `quickshell/media.sh` | Bash | Queries MPRIS metadata via `playerctl` formatted with `\|\|\|` delimiters | Yes |

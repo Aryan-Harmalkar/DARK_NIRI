@@ -154,6 +154,28 @@ case "$1" in
             echo "Applied random wallpaper: $RAND_TARGET"
         fi
         ;;
+    add)
+        TARGET="$2"
+        NAME="$3"
+        if [ -z "$TARGET" ]; then
+            echo "Usage: wallpaperctl add <path_or_url> [name]"
+            exit 1
+        fi
+        start_engine
+        if [ -n "$NAME" ]; then
+            send_ipc "{\"cmd\": \"add_html\", \"target\": \"$TARGET\", \"name\": \"$NAME\"}"
+        else
+            send_ipc "{\"cmd\": \"add_html\", \"target\": \"$TARGET\"}"
+        fi
+        ;;
+    remove)
+        TARGET="$2"
+        if [ -z "$TARGET" ]; then
+            echo "Usage: wallpaperctl remove <path_or_url>"
+            exit 1
+        fi
+        send_ipc "{\"cmd\": \"remove_custom\", \"target\": \"$TARGET\"}"
+        ;;
     monitors)
         send_ipc '{"cmd": "monitors"}'
         ;;
@@ -175,7 +197,7 @@ case "$1" in
         fi
         ;;
     *)
-        echo "Usage: wallpaperctl {start|stop|restart|set <target> [monitor]|color <hex>|set-effect <key> <val>|set-config <json>|get-config|get|list|random|monitors|status|reload|init}"
+        echo "Usage: wallpaperctl {start|stop|restart|set <target> [monitor]|add <path_or_url> [name]|remove <path_or_url>|color <hex>|set-effect <key> <val>|set-config <json>|get-config|get|list|random|monitors|status|reload|init}"
         exit 1
         ;;
 esac

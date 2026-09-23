@@ -1,3 +1,6 @@
+#[path = "../common.rs"]
+mod common;
+
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -250,13 +253,15 @@ fn set_profile(mac: &str, profile: &str) {
 }
 
 fn main() {
+    common::ignore_sigpipe();
+
     let args: Vec<String> = env::args().collect();
     let action = args.get(1).map(|s| s.as_str()).unwrap_or("list");
 
     match action {
         "list" => {
             let status = get_bt();
-            println!("{}", serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string()));
+            common::safe_print_json(&status);
         }
         "toggle" => {
             toggle();
@@ -264,7 +269,7 @@ fn main() {
         "scan" => {
             scan();
             let status = get_bt();
-            println!("{}", serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string()));
+            common::safe_print_json(&status);
         }
         "pair" => {
             if let Some(mac) = args.get(2) {
@@ -293,7 +298,7 @@ fn main() {
         }
         _ => {
             let status = get_bt();
-            println!("{}", serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string()));
+            common::safe_print_json(&status);
         }
     }
 }

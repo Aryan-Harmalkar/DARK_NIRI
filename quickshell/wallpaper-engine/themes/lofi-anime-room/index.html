@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lofi Anime Room</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a14; }
+canvas#rain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 3; }
+canvas#scene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+canvas#bokeh { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<canvas id="bokeh"></canvas>
+<canvas id="rain"></canvas>
+
+<script>
+const scene = document.getElementById('scene');
+const sctx = scene.getContext('2d');
+const bokeh = document.getElementById('bokeh');
+const bctx = bokeh.getContext('2d');
+const rain = document.getElementById('rain');
+const rctx = rain.getContext('2d');
+
+function resize() {
+  [scene, bokeh, rain].forEach(c => {
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+  });
+}
+window.addEventListener('resize', resize);
+resize();
+
+const W = () => scene.width;
+const H = () => scene.height;
+
+// Rain drops
+const drops = [];
+for (let i = 0; i < 200; i++) {
+  drops.push({
+    x: Math.random() * W(),
+    y: Math.random() * H(),
+    len: Math.random() * 20 + 8,
+    speed: Math.random() * 8 + 4,
+    alpha: Math.random() * 0.3 + 0.1,
+    width: Math.random() * 1.2 + 0.4
+  });
+}
+
+// Bokeh lights
+const lights = [];
+const lightColors = [
+  'rgba(255, 150, 50, 0.6)',
+  'rgba(255, 80, 120, 0.5)',
+  'rgba(100, 200, 255, 0.4)',
+  'rgba(255, 200, 100, 0.5)',
+  'rgba(200, 100, 255, 0.35)',
+  'rgba(80, 255, 180, 0.3)'
+];
+for (let i = 0; i < 35; i++) {
+  lights.push({
+    x: Math.random() * W(),
+    y: Math.random() * H() * 0.7 + H() * 0.15,
+    r: Math.random() * 30 + 10,
+    color: lightColors[Math.floor(Math.random() * lightColors.length)],
+    pulseSpeed: Math.random() * 0.02 + 0.005,
+    pulseOffset: Math.random() * Math.PI * 2,
+    driftX: (Math.random() - 0.5) * 0.3,
+    driftY: (Math.random() - 0.5) * 0.15
+  });
+}
+
+// Neon signs
+const neons = [
+  { x: 0.15, y: 0.35, w: 0.08, h: 0.02, color: '#ff4488', text: '営業中', flicker: 0 },
+  { x: 0.75, y: 0.28, w: 0.06, h: 0.015, color: '#44aaff', text: 'OPEN', flicker: 0 },
+  { x: 0.55, y: 0.42, w: 0.05, h: 0.012, color: '#ff8844', text: 'カフェ', flicker: 0 }
+];
+
+let time = 0;
+
+function drawScene() {
+  const w = W(), h = H();
+  // Room interior - warm dark tones
+  const bg = sctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0c0a18');
+  bg.addColorStop(0.3, '#12101e');
+  bg.addColorStop(0.7, '#1a1528');
+  bg.addColorStop(1, '#0e0c1a');
+  sctx.fillStyle = bg;
+  sctx.fillRect(0, 0, w, h);
+
+  // Window frame (glass with city view)
+  const wx = w * 0.1, wy = h * 0.08, ww = w * 0.8, wh = h * 0.65;
+  // City outside window
+  const city = sctx.createLinearGradient(wx, wy, wx, wy + wh);
+  city.addColorStop(0, '#0a0820');
+  city.addColorStop(0.4, '#141030');
+  city.addColorStop(0.7, '#1e1840');
+  city.addColorStop(1, '#2a2050');
+  sctx.fillStyle = city;
+  sctx.fillRect(wx, wy, ww, wh);
+
+  // Distant buildings
+  sctx.fillStyle = '#0e0c20';
+  for (let i = 0; i < 15; i++) {
+    const bx = wx + (ww / 15) * i;
+    const bw = ww / 15 - 2;
+    const bh = Math.random() * wh * 0.4 + wh * 0.2;
+    sctx.fillRect(bx, wy + wh - bh, bw, bh);
+  }
+
+  // Window lit squares
+  sctx.fillStyle = 'rgba(255, 200, 100, 0.15)';
+  for (let i = 0; i < 40; i++) {
+    const lx = wx + Math.random() * ww;
+    const ly = wy + wh * 0.3 + Math.random() * wh * 0.6;
+    sctx.fillRect(lx, ly, 3, 3);
+  }
+
+  // Window frame border
+  sctx.strokeStyle = '#2a2540';
+  sctx.lineWidth = 4;
+  sctx.strokeRect(wx, wy, ww, wh);
+  // Window cross bars
+  sctx.beginPath();
+  sctx.moveTo(wx + ww / 2, wy);
+  sctx.lineTo(wx + ww / 2, wy + wh);
+  sctx.moveTo(wx, wy + wh / 2);
+  sctx.lineTo(wx + ww, wy + wh / 2);
+  sctx.stroke();
+
+  // Desk/shelf at bottom
+  sctx.fillStyle = '#1a1525';
+  sctx.fillRect(0, h * 0.75, w, h * 0.25);
+  sctx.fillStyle = '#221d30';
+  sctx.fillRect(0, h * 0.75, w, 4);
+
+  // Warm desk lamp glow
+  const lampGlow = sctx.createRadialGradient(w * 0.3, h * 0.72, 5, w * 0.3, h * 0.72, 150);
+  lampGlow.addColorStop(0, 'rgba(255, 180, 80, 0.25)');
+  lampGlow.addColorStop(1, 'transparent');
+  sctx.fillStyle = lampGlow;
+  sctx.fillRect(0, h * 0.5, w * 0.6, h * 0.5);
+
+  // Neon signs in window
+  for (const n of neons) {
+    n.flicker += 0.05;
+    const on = Math.sin(n.flicker * 3) > -0.8;
+    if (!on) continue;
+    const nx = w * n.x, ny = h * n.y;
+    sctx.shadowColor = n.color;
+    sctx.shadowBlur = 20;
+    sctx.fillStyle = n.color;
+    sctx.font = `bold ${h * n.h}px sans-serif`;
+    sctx.fillText(n.text, nx, ny);
+    sctx.shadowBlur = 0;
+  }
+}
+
+function drawBokeh() {
+  bctx.clearRect(0, 0, W(), H());
+  for (const l of lights) {
+    l.x += l.driftX;
+    l.y += l.driftY;
+    if (l.x < 0) l.x = W();
+    if (l.x > W()) l.x = 0;
+
+    const pulse = 0.6 + Math.sin(time * l.pulseSpeed * 60 + l.pulseOffset) * 0.4;
+    const grad = bctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r * pulse);
+    grad.addColorStop(0, l.color);
+    grad.addColorStop(1, 'transparent');
+    bctx.fillStyle = grad;
+    bctx.beginPath();
+    bctx.arc(l.x, l.y, l.r * pulse * 1.5, 0, Math.PI * 2);
+    bctx.fill();
+  }
+}
+
+function drawRain() {
+  rctx.clearRect(0, 0, W(), H());
+  rctx.strokeStyle = 'rgba(160, 190, 255, 0.35)';
+  rctx.lineWidth = 1;
+  rctx.beginPath();
+  for (const d of drops) {
+    d.y += d.speed;
+    d.x += 1.5;
+    if (d.y > H()) {
+      d.y = -d.len;
+      d.x = Math.random() * W();
+    }
+    if (d.x > W()) d.x = 0;
+    rctx.globalAlpha = d.alpha;
+    rctx.moveTo(d.x, d.y);
+    rctx.lineTo(d.x + d.len * 0.1, d.y + d.len);
+  }
+  rctx.stroke();
+  rctx.globalAlpha = 1;
+}
+
+// Draw static scene once, then animate overlays
+drawScene();
+let sceneDrawn = false;
+
+function animate() {
+  time += 0.016;
+  if (!sceneDrawn || Math.floor(time * 60) % 120 === 0) {
+    drawScene();
+    sceneDrawn = true;
+  }
+  drawBokeh();
+  drawRain();
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

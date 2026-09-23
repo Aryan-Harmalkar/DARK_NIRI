@@ -35,14 +35,33 @@ This document provides a complete technical analysis of the **QuickShell** deskt
 - **Parsing**: Parses JSON array of workspaces, identifying `is_active: true`.
 - **Interaction**: Clicking a workspace pill executes `niri msg action focus-workspace <idx>`. Smooth capsule morphing animation on focus shift.
 
-### 2.2 `Clock.qml` (Date & Time Display)
-- **Mechanism**: `Timer` firing every 1,000ms.
-- **Typography**: Dual-tone typography styling separating weekday, date, and 12-hour time.
+### 2.2 `Clock.qml` (Date & Time Display & Interactive Calendar Popup)
+- **Top Bar Pill**: Dual-tone typography styling separating weekday, month, day, and 12-hour time with Tokyo Night accent separation dot.
+- **Hover Cockpit Popup Window (576px Bento Layout)**: Activated strictly on hover over the status bar pill, supported by a 350ms grace exit timer.
+  - **Left Column (260px Time & Temporal Cockpit)**:
+    - **Digital Clock Hero**: Large bold 12-hour time (`HH:mm`), live ticking seconds (`:ss` in accent color), and AM/PM tag.
+    - **24-Hour & UTC Clocks**: Secondary display showing military 24-hour time and live UTC/Zulu time for developers.
+    - **Full Date & Milestones**: Long-form date string, ISO Week number pill (`Wk 39`), Day of Year progress (`Day 266/365`), and annual Quarter badge (`Q3`).
+    - **Temporal Progress Gauges**: Real-time visual progress bars tracking Day Elapsed % and Year Elapsed %.
+    - **Timezone, Uptime & NTP Status**: Displays system timezone region (`Asia/Kolkata`), abbreviation and UTC offset (`IST (+05:30)`), system uptime (`Up 25m`), and NTP synchronization status (`NTP Synced`).
+  - **Right Column (268px Interactive Calendar Widget)**:
+    - **Header Navigation**: Current month/year heading with navigation buttons (`◀` previous month, `▶` next month) and a 1-click `Today` return button.
+    - **Day Labels**: Monday through Sunday header row (`Mo` - `Su`) with weekend distinction.
+    - **Full 42-Cell Monthly Grid**: High-contrast highlight on today's date (`Theme.accent` pill with bold contrasting text), muted trailing/leading days from adjacent months, and hover effects on all days.
+    - **Footer Metrics**: Long date summary and live Unix/Epoch timestamp counter.
+- **Helper Script**: Powered by `quickshell/clock-info.sh` for instant sub-millisecond retrieval of system timezone name, abbreviation, UTC offset, system uptime, and NTP synchronization.
 
-### 2.3 `SysInfo.qml` (System Metrics Telemetry)
-- **Polling**: 1,000ms timer running `quickshell/sysinfo.sh` while hovering over badge; background 30,000ms timer for network stats.
-- **Data Ingestion**: Parses structured JSON object containing CPU %, Temp, Fan, CPU Package Power (PPT in Watts), RAM %, Net Up/Down, persistent daily/monthly usage, NVMe SSD live read/write speeds and boot totals, AMD iGPU, zero-wake NVIDIA dGPU status, system uptime (`Xd Xh Xm`), and real-time total system power draw in Watts.
-- **Badge & Modal**: Displays compact telemetry pill on bar; hovering opens detailed 1.75x scaled hardware dashboard card.
+### 2.3 `SysInfo.qml` (System Metrics Telemetry & Section Deep Inspector)
+- **Polling & Execution Model**: Strict hover-only execution. `sysinfo.sh` and `sysinfo-details.sh` run at 1,000ms intervals **strictly while hovering**. Zero background polling timers, zero background CPU cycles, and 0 bytes of internet data usage (all telemetry is read directly from kernel memory).
+- **Cockpit Architecture**: Dual-pane Bento Cockpit layout (940px width):
+  - **Left Column (540px Overview)**: CPU Load & Package Wattage, Memory (RAM) breakdown, Network Live Rates & Daily/Monthly bandwidth, NVMe SSD Live Read/Write throughput & cumulative boot I/O, AMD Radeon 740M iGPU, and NVIDIA RTX 3050 zero-wake D3cold status.
+  - **Right Column (354px Deep Inspector)**: Dynamic contextual inspector powered by `quickshell/sysinfo-details.sh`. Hovering or clicking any hardware card on the left instantly streams deep diagnostic telemetry:
+    - **CPU**: Top 5 processes by `%CPU` (with PID, command, and visual usage bars), core frequencies, scaling governor, and load averages.
+    - **RAM**: Top 5 memory-consuming tasks (with PID, RSS in MB/GB, and memory %), swap allocation, cache/buffers, and free memory.
+    - **Storage**: Mounted filesystem partitions (`df -h`), volume usage percentages, available free space, and primary device path.
+    - **Network**: Active connection details, Wi-Fi SSID, interface IPv4 addresses, default gateway, and active socket connections.
+    - **GPU**: AMD iGPU VRAM allocation pool and NVIDIA RTX 3050 PCIe runtime suspend / dedicated VRAM state.
+- **Interaction**: 350ms smooth hover grace delay prevents accidental popup dismissals when navigating between the bar badge, cards, and deep inspector list.
 
 ### 2.4 `Media.qml` (Interactive Media Pill)
 - **Polling**: 1,000ms timer running `quickshell/media.sh`.

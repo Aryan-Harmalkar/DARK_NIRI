@@ -14,7 +14,8 @@ if command -v playerctl >/dev/null 2>&1; then
     fi
 fi
 
-# 2. Kill and restart QuickShell
+# 2. Kill and restart QuickShell and any running helpers
+killall -9 wifi bluetooth 2>/dev/null
 killall qs 2>/dev/null
 sleep 0.1
 qs -d -p "$HOME/DARK_NIRI/quickshell/shell.qml" &

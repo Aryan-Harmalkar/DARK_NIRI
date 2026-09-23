@@ -11,6 +11,10 @@ ulimit -c 0
 dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 
+# Ensure GTK, GNOME, and Wayland apps render window control buttons (minimize, maximize, close) in headerbars
+gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close' 2>/dev/null || true
+gsettings set org.cinnamon.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close' 2>/dev/null || true
+
 # Kill any existing instances to avoid duplicates during config reloads
 killall mako 2>/dev/null
 killall qs 2>/dev/null
@@ -29,3 +33,6 @@ wl-paste --watch cliphist store &
 
 # Run cache & scratch hygiene cleanup in background
 $HOME/DARK_NIRI/niri/cleanup.sh &
+
+# Spotify ad muter (mutes Spotify stream during ads, auto-retries)
+$HOME/DARK_NIRI/niri/mute-spotify-ads.sh &

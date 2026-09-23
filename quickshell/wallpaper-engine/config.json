@@ -1,45 +1,45 @@
 {
-  "active": "cyber-city",
+  "active": "anime-showcase",
   "active_type": "theme",
   "mode": "global",
   "monitors": {},
-  "fps": 30,
+  "fps": 60,
   "quality": "battery_saver",
   "battery_saver": true,
   "pause_fullscreen": true,
   "effects": {
     "blur": {
       "enabled": false,
-      "radius": 5
+      "radius": 0
     },
     "brightness": 100,
     "clock_hud": {
-      "enabled": false,
+      "enabled": true,
       "format24h": true,
-      "position": "center",
+      "position": "top-right",
       "showSeconds": true,
       "style": "cyber"
     },
     "contrast": 100,
     "parallax": {
-      "depth": 4,
+      "depth": 2.5,
       "enabled": true
     },
     "particles": {
       "color": "#7aa2f7",
-      "count": 20,
+      "count": 40,
       "enabled": true,
       "speed": 1.0,
-      "style": "dust"
+      "style": "embers"
     },
     "scanlines": {
       "enabled": false,
       "opacity": 0.25
     },
     "time_lighting": {
-      "enabled": false,
-      "mode": "manual",
-      "preset": "night"
+      "enabled": true,
+      "mode": "auto",
+      "preset": "sunset"
     },
     "vignette": {
       "enabled": true,
@@ -48,7 +48,8 @@
     "weather": {
       "enabled": false,
       "intensity": "medium",
-      "type": "snow"
+      "type": "rain"
     }
-  }
+  },
+  "custom_wallpapers": []
 }

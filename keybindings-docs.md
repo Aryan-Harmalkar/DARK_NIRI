@@ -16,7 +16,7 @@ Niri uses `Mod` as the primary modifier, which maps to your **Super** (Windows/C
 ## Window Management
 | Shortcut | Action | Notes |
 | :--- | :--- | :--- |
-| `Alt + F` | Close focused window | `close-window` |
+| `Alt + F` / `Super + Q` / `Alt + F4` | Close focused window | `close-window` |
 | `Super + Left / Right` | Focus column left / right | `focus-column-left` / `focus-column-right` |
 | `Super + Up / Down` | Focus window up / down inside column | `focus-window-up` / `focus-window-down` |
 | `Super + Shift + Left / Right` | Move column left / right | `move-column-left` / `move-column-right` |

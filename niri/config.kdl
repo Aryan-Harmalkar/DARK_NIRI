@@ -2,7 +2,7 @@
 // Documentation: https://github.com/YaLTeR/niri/wiki/Configuration:-Overview
 
 spawn-at-startup "sh" "-c" "exec $HOME/DARK_NIRI/niri/startup.sh >/dev/null 2>&1"
-
+spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 hotkey-overlay {
     skip-at-startup
 }
@@ -69,7 +69,9 @@ binds {
     Mod+Space { spawn "sh" "-c" "rofi -show drun -theme $HOME/DARK_NIRI/rofi/config.rasi"; }
 
     // Window management
-    Alt+F { close-window; }
+    Alt+F  { close-window; }
+    Mod+Q  { close-window; }
+    Alt+F4 { close-window; }
     Mod+Left  { focus-column-left; }
     Mod+Right { focus-column-right; }
     Mod+Up    { focus-window-up; }

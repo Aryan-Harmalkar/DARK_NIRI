@@ -43,6 +43,34 @@ deploy_app "niri"
 deploy_app "fuzzel"
 deploy_app "quickshell"
 deploy_app "mako"
+deploy_app "zsh"
+
+# Deploy Zsh environment (ZDOTDIR + login shell)
+if [ -d "$SOURCE_DIR/zsh" ]; then
+    echo "🐚 Setting up Zsh environment..."
+    # Create ~/.zshenv ZDOTDIR redirector
+    if [ ! -f "$HOME/.zshenv" ] || ! grep -q "ZDOTDIR" "$HOME/.zshenv" 2>/dev/null; then
+        if [ -f "$HOME/.zshenv" ]; then
+            cp "$HOME/.zshenv" "$HOME/.zshenv.bak"
+            echo "📦 Backed up existing ~/.zshenv"
+        fi
+        cat > "$HOME/.zshenv" << 'ZSHENV'
+# DARK_NIRI Zsh Environment — ZDOTDIR redirector
+export ZDOTDIR="$HOME/.config/zsh"
+[[ -f "$ZDOTDIR/.zshenv" ]] && source "$ZDOTDIR/.zshenv"
+ZSHENV
+        echo "✅ Created ~/.zshenv (ZDOTDIR redirector)"
+    fi
+    # Ensure state directories exist
+    mkdir -p "$HOME/.local/state/zsh" "$HOME/.cache/zsh"
+fi
+
+# Configure GTK/GNOME window decoration button layout (close, maximize, minimize)
+if command -v gsettings >/dev/null 2>&1; then
+    echo "🪟 Configuring window decoration buttons (minimize, maximize, close)..."
+    gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close' 2>/dev/null || true
+    gsettings set org.cinnamon.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close' 2>/dev/null || true
+fi
 
 # Build and ensure permissions for Rust performance tools
 if [ -d "$SOURCE_DIR/dark-tools-rs" ] && command -v cargo >/dev/null 2>&1; then
@@ -65,6 +93,7 @@ chmod +x "$SOURCE_DIR/quickshell/net-tracker" \
          "$SOURCE_DIR/quickshell/bluetooth" \
          "$SOURCE_DIR/quickshell/notifications" \
          "$SOURCE_DIR/quickshell/theme-manager" \
+         "$SOURCE_DIR/quickshell/battery-info.sh" \
          "$SOURCE_DIR/quickshell/wallpaper-engine/wp-ipc" \
          "$SOURCE_DIR/quickshell/wallpaper-engine/wallpaper-engine" 2>/dev/null || true
 
