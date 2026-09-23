@@ -131,3 +131,6 @@ Rectangle {
 - **Status Alerts**: `errorRed`, `successGreen`, `warningYellow`
 - **Layout & Geometry**: `barStyle`, `panelRadius`, `pillRadius`, `modalRadius`
 - **Persistence**: Color tokens and bar styles are persisted across reboots in `quickshell/theme.json` and `quickshell/bar_style.json`.
+
+## 3D WebGL Themes
+Beyond static and basic HTML themes, the system now features highly optimized **Three.js + Anime.js** themes (`anime-pirate-crew`, `anime-cyberpunk-3d`). These are backed by a shared `engine-core.js` that automatically hooks into the Wayland/QuickShell IPC to throttle framerates to 30FPS on battery power and suspend rendering when windows are maximized.
