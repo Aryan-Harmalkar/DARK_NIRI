@@ -30,7 +30,7 @@
 - 📜 **Scrollable Column Tiling & Auto-Maximize**: Infinite horizontal workspace ribbon with 33.3%, 50%, and 66.7% preset column widths, plus global automatic column maximization (`default-column-width { proportion 1.0; }`) so all applications launch full-screen width by default.
 - 🎨 **1-Click Whole-System Theme Studio**: One-click instant theme switching via QuickShell Settings GUI (`btn => themes`) across 7 curated presets (Tokyo Night, Catppuccin Mocha, Cyberpunk 2077, Nord Frost, Dracula, Rose Pine, Gruvbox Dark). Synchronizes QuickShell, Niri, Rofi, Fuzzel, Mako, and Wallpaper Engine in real-time.
 - 🔋 **Interactive On-Demand Battery Telemetry**: Hovering the battery icon reveals an on-demand cockpit card with AC connection state, charging rate, battery health percentage, charge cycles, voltage, power draw, and exact duration since plugged in or running on battery (zero idle background polling; strictly on-demand on hover).
-- 🐚 **Dynamic Multi-Style Status Bar (`shell.qml`)**: 4 selectable bar styles with 1-click in-GUI switching:
+- 🐚 **Dynamic Multi-Style Status Bar (`shell.qml`)**: Multi-monitor aware bar that spawns on all connected screens (including external displays) with `Super+Q` toggle to hide/unhide globally. 4 selectable bar styles with 1-click in-GUI switching:
   - **Floating**: Unified neo-glass island dock with rounded corners (`radius: 22`), frosted glass sheen highlight, and glowing borders.
   - **Islands**: Split 3-piece modular capsules for Left, Center, and Right over a transparent desktop.
   - **Normal**: Classic edge-to-edge flush panel with subtle bottom border line.
@@ -40,7 +40,7 @@
 - ⚡ **100% Native Rust Migration (`dark-tools-rs`)**: Zero Python runtime dependencies for system utilities. High-performance native Rust binaries for network tracking (`net-tracker`), daily logging (`daily-network-logger`), Wi-Fi (`wifi`), Bluetooth (`bluetooth`), notifications (`notifications`), theme orchestrator (`theme-manager`), and background engine (`wallpaper-engine`).
 - 📶 **Wi-Fi Manager with WPS Support**: Scans networks, prompts for credentials, and interrogates D-Bus AP flags for instant WPS pairing.
 - 🖼️ **Modular HTML/Web Wallpaper Engine**: Hardware-accelerated native background engine powered by `gtk4-layer-shell`, `webkit6`, and `dark-tools-rs`. Renders interactive HTML5/WebGL themes (`anime-sakura`, `lofi-anime-room`, `celestial-nebula`, `cyber-city`, `aurora`, `particles`, `waves`), media, and external web canvases with zero-SSD RAM caching, master ON/OFF switches, live thumbnail preview cards, 30–144 FPS limits, and an extensive effects customizer (particles, parallax, speed multiplier, click ripples, hue/saturation, CRT scanlines).
-- 🚀 **Advanced 3D WebGL Wallpapers (Three.js + Anime.js)**: Features an orchestration framework and reusable template system for highly optimized, interactive 3D anime backgrounds with dynamic mouse parallax, battery-aware FPS throttling, and automated GPU memory cleanup.
+- 🚀 **Advanced 3D WebGL Wallpapers (Three.js + Anime.js)**: Features an orchestration framework and reusable template system for highly optimized, interactive 3D anime backgrounds with dynamic mouse parallax, battery-aware FPS throttling, and automated GPU memory cleanup. Includes `straw-hat-interactive` theme featuring an interactive 3D Straw Hat Pirate crew showcase.
 - 🤖 **Multi-Agent Orchestration Framework**: Includes a local `.agents/` directory defining autonomous agent roles (`planner`, `designer`, `builder`, `tester`, `review`, `supervisor`) and slash-commands for architecting and building Wayland-native features.
 - 📊 **Real-Time Hardware Telemetry**: Live CPU %, thermals, fan RPM, RAM usage, CPU package power (PPT in Watts), real-time total system power draw (Watts, measuring battery V×A or APU PPT + dGPU), live NVMe SSD disk read/write throughput and cumulative boot I/O, system uptime (`Xd Xh Xm`), persistent daily/monthly network data usage, AMD iGPU, and zero-wake NVIDIA dGPU telemetry.
 - 🎵 **MPRIS Media Player**: Dancing equalizer visualizer bars on bar, album art preview, hover controls, previous/play/pause/next, and position seeking. Pure PipeWire/WirePlumber routing ensures zero Spotify stutter or automatic pause.
@@ -89,8 +89,8 @@ chmod +x deploy.sh uninstall.sh
 | :--- | :--- | :--- |
 | `Super + Return` | Open Terminal | `alacritty` |
 | `Super + Space` | Application Launcher | `rofi -show drun` |
-| `Super + V` | Clipboard History | `cliphist list \| rofi` |
-| `Alt + F` / `Super + Q` / `Alt + F4` | Close Window | `close-window` |
+| `Alt + F4` | Close Window | `close-window` |
+| `Super + Q` | Toggle Bar (Multi-Monitor) | `toggle-bar.sh` |
 | `Super + F` | Maximize Column Width | `maximize-column` |
 | `Super + Shift + F` | Fullscreen Window | `fullscreen-window` |
 | `Super + Left / Right` | Focus Column Left / Right | `focus-column-left/right` |

@@ -53,22 +53,11 @@ quickshell/wallpaper-engine/
 ├── config.json                 # Persistent engine configuration & effect state
 ├── quickshell-wallpaper.service# Systemd user service unit
 └── themes/                     # Self-contained web wallpapers
-    ├── anime-sakura/           # Drifting cherry blossom petals with Mt. Fuji & warm lantern glow
-    ├── anime-showcase/         # Interactive anime character showcase with auto-timer, stat cards & widgets
     ├── one-piece-crew/         # Animated One Piece Straw Hat crew showcase with 10 members in join order, live bounties & widgets
-    ├── lofi-anime-room/        # Cozy anime study desk with ambient window rain & soft lighting
-    ├── celestial-nebula/       # Deep cosmos with rotating galaxies, twinkling stars & nebula clouds
-    ├── cyber-city/             # Animated cyberpunk metropolis with skyline & HUD
-    ├── aurora/                 # Fluid northern lights ribbons
-    ├── cyber-matrix/           # Tokyo Night digital code stream
     ├── particles/              # Interactive constellation particle network
-    ├── waves/                  # Layered harmonic sine waves
-    ├── fallback/               # Safe Tokyo Night radial gradient
-    ├── image-viewer/           # Universal wrapper for images & videos with live FX
-    ├── anime-3d-showcase/      # 3D Anime Cel-shaded procedural crystal with Niri parallax
-    ├── html-wallpaper-template/# Reusable Three.js + Anime.js template with optimization
-    ├── anime-pirate-crew/      # 3D Anime pirate ship & ocean with mouse parallax
-    └── anime-cyberpunk-3d/     # 3D Neon cyberpunk city with glowing rain particles
+    ├── fallback/               # Safe Tokyo Night radial gradient (system)
+    ├── image-viewer/           # Universal wrapper for images & videos with live FX (system)
+    └── shared/                 # Bundled offline Three.js, Anime.js & WebGL utilities
 ```
 
 ---

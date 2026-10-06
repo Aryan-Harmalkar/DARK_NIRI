@@ -90,6 +90,7 @@ Item {
         // Optimistic local state update for instantaneous zero-latency UI response
         let cfg = Object.assign({}, root.engineConfig);
         if (!cfg.effects) cfg.effects = {};
+        cfg.effects = JSON.parse(JSON.stringify(cfg.effects));
         let topKeys = ["quality", "fps", "battery_saver", "pause_fullscreen", "mode", "active"];
         if (topKeys.indexOf(key) !== -1) {
             cfg[key] = val;
@@ -285,6 +286,9 @@ Item {
                 audioProcess.running = true
                 brightProcess.running = true
                 recStatusProcess.running = true
+            }
+            if (root.isGalleryOpen) {
+                statusProcess.running = true
             }
         }
     }
@@ -3451,8 +3455,8 @@ Item {
                                     let target = root.customHtmlInput.trim()
                                     if (!target) return
                                     let name = root.customHtmlName.trim()
-                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "add", target, name || target])
-                                    Quickshell.execDetached([Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl", "set", target])
+                                    let shCmd = Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl add '" + target + "' '" + (name || target).replace(/'/g, "") + "' && " + Quickshell.env("HOME") + "/DARK_NIRI/quickshell/wallpaper-engine/wallpaperctl set '" + target + "'";
+                                    Quickshell.execDetached(["sh", "-c", shCmd])
                                     root.activeWallpaper = target
                                     root.customHtmlInput = ""
                                     root.customHtmlName = ""

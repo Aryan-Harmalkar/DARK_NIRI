@@ -69,9 +69,10 @@ binds {
     Mod+Space { spawn "sh" "-c" "rofi -show drun -theme $HOME/DARK_NIRI/rofi/config.rasi"; }
 
     // Window management
-    Alt+F  { close-window; }
-    Mod+Q  { close-window; }
     Alt+F4 { close-window; }
+
+    // Quickshell bar toggle (hide/unhide on all monitors)
+    Mod+Q  { spawn "sh" "-c" "$HOME/DARK_NIRI/quickshell/toggle-bar.sh"; }
     Mod+Left  { focus-column-left; }
     Mod+Right { focus-column-right; }
     Mod+Up    { focus-window-up; }

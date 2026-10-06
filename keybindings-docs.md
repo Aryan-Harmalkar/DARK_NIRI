@@ -16,7 +16,7 @@ Niri uses `Mod` as the primary modifier, which maps to your **Super** (Windows/C
 ## Window Management
 | Shortcut | Action | Notes |
 | :--- | :--- | :--- |
-| `Alt + F` / `Super + Q` / `Alt + F4` | Close focused window | `close-window` |
+| `Alt + F4` | Close focused window | `close-window` |
 | `Super + Left / Right` | Focus column left / right | `focus-column-left` / `focus-column-right` |
 | `Super + Up / Down` | Focus window up / down inside column | `focus-window-up` / `focus-window-down` |
 | `Super + Shift + Left / Right` | Move column left / right | `move-column-left` / `move-column-right` |
@@ -47,6 +47,14 @@ All hardware media and backlight keys trigger `$HOME/DARK_NIRI/niri/osd.sh` for 
 | `Fn + Mic Mute` | Toggle Mic Mute | `$HOME/DARK_NIRI/niri/osd.sh mic-mute` (`wpctl`) |
 | `Fn + Brightness Up` | Increase Brightness (+5%) | `$HOME/DARK_NIRI/niri/osd.sh bri-up` (`brightnessctl`) |
 | `Fn + Brightness Down`| Decrease Brightness (-5%)| `$HOME/DARK_NIRI/niri/osd.sh bri-down` (`brightnessctl`) |
+
+## Quickshell Bar
+| Shortcut | Action | Backend Command |
+| :--- | :--- | :--- |
+| `Super + Q` | Toggle bar visibility (hide/unhide on all monitors) | `$HOME/DARK_NIRI/quickshell/toggle-bar.sh` |
+
+> [!NOTE]
+> The Quickshell bar is displayed on **all connected monitors** including external displays. The visibility toggle applies globally — pressing `Super + Q` hides or shows the bar on every screen simultaneously.
 
 > [!TIP]
 > Press `Super + Shift + /` at any time to bring up the built-in Niri Hotkey Overlay directly on screen.

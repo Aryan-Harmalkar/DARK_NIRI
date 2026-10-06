@@ -12,8 +12,8 @@ This document provides a complete reference for all keyboard shortcuts and hardw
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | `Mod+Shift+/` | Show Hotkey Overlay | `show-hotkey-overlay` | `niri/config.kdl` | `niri` | Working |
 | `Mod+Return` | Launch Terminal | `alacritty` | `niri/config.kdl` | `alacritty` | Working |
-| `Mod+Space` | Application Launcher | `rofi -show drun -theme $HOME/DARK_NIRI/rofi/config.rasi` | `niri/config.kdl` | `rofi-wayland` | Working |
-| `Alt+F` / `Mod+Q` / `Alt+F4` | Close Window | `close-window` | `niri/config.kdl` | `niri` | Working |
+| `Alt+F4` | Close Window | `close-window` | `niri/config.kdl` | `niri` | Working |
+| `Mod+Q` | Toggle Bar (Multi-Monitor) | `$HOME/DARK_NIRI/quickshell/toggle-bar.sh` | `niri/config.kdl` | `quickshell` | Working |
 | `Mod+Left` | Focus Column Left | `focus-column-left` | `niri/config.kdl` | `niri` | Working |
 | `Mod+Right` | Focus Column Right | `focus-column-right` | `niri/config.kdl` | `niri` | Working |
 | `Mod+Up` | Focus Window Up | `focus-window-up` | `niri/config.kdl` | `niri` | Working |

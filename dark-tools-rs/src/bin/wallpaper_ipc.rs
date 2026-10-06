@@ -38,7 +38,7 @@ fn list_items(themes_dir: &str, wall_dir: &str) {
     if let Ok(entries) = fs::read_dir(themes_dir) {
         let mut t_names: Vec<String> = entries
             .flatten()
-            .filter(|e| e.path().is_dir() && e.file_name() != "image-viewer" && e.file_name() != "fallback")
+            .filter(|e| e.path().is_dir() && e.file_name() != "image-viewer" && e.file_name() != "fallback" && e.file_name() != "shared" && e.path().join("index.html").exists())
             .filter_map(|e| e.file_name().into_string().ok())
             .collect();
         t_names.sort();

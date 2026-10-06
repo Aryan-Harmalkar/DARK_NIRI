@@ -680,7 +680,7 @@ impl EngineState {
 
             for entry in dirs {
                 let name = entry.file_name().to_string_lossy().to_string();
-                if entry.path().is_dir() && name != "image-viewer" && name != "fallback" {
+                if entry.path().is_dir() && name != "image-viewer" && name != "fallback" && name != "shared" && entry.path().join("index.html").exists() {
                     let manifest_path = entry.path().join("wallpaper.json");
                     let mut meta_name = name.replace('-', " ");
                     let mut desc = "Interactive HTML Wallpaper".to_string();
