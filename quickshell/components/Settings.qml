@@ -17,8 +17,8 @@ Item {
     property bool isThemesOpen: false
 
     property var themesList: []
-    property string activeThemeId: "tokyo-night"
-    property string activeThemeName: "Tokyo Night"
+    property string activeThemeId: Components.Theme.themeId
+    property string activeThemeName: Components.Theme.name
 
     property var wallpapers: []
     property string activeWallpaper: ""
@@ -29,6 +29,12 @@ Item {
     property bool isAddHtmlDialogOpen: false
     property string customHtmlInput: ""
     property string customHtmlName: ""
+
+    onIsThemesOpenChanged: {
+        if (root.isThemesOpen) {
+            themesListProcess.running = true
+        }
+    }
 
     onIsGalleryOpenChanged: {
         if (root.isGalleryOpen) {

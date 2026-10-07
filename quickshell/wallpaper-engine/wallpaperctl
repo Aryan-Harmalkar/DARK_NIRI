@@ -5,6 +5,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENGINE_BIN="$DIR/wallpaper-engine"
 CONFIG_FILE="$DIR/config.json"
 STATE_FILE="$HOME/.config/niri/current_wallpaper"
+ENABLED_FILE="$HOME/.config/niri/wallpaper_engine_enabled"
 export GSK_RENDERER="gl"
 
 send_ipc() {
@@ -58,6 +59,8 @@ stop_engine() {
 
 case "$1" in
     start)
+        mkdir -p "$(dirname "$ENABLED_FILE")" 2>/dev/null || true
+        echo "true" > "$ENABLED_FILE"
         if start_engine; then
             echo "Wallpaper Engine started."
         else
@@ -66,16 +69,22 @@ case "$1" in
         fi
         ;;
     stop)
+        mkdir -p "$(dirname "$ENABLED_FILE")" 2>/dev/null || true
+        echo "false" > "$ENABLED_FILE"
         stop_engine
         echo "Wallpaper Engine stopped."
         ;;
     restart)
+        mkdir -p "$(dirname "$ENABLED_FILE")" 2>/dev/null || true
+        echo "true" > "$ENABLED_FILE"
         stop_engine
         sleep 0.3
         start_engine
         echo "Wallpaper Engine restarted."
         ;;
     set)
+        mkdir -p "$(dirname "$ENABLED_FILE")" 2>/dev/null || true
+        echo "true" > "$ENABLED_FILE"
         WALL="$2"
         MONITOR="$3"
         if [ -z "$WALL" ]; then
@@ -90,6 +99,8 @@ case "$1" in
         fi
         ;;
     color)
+        mkdir -p "$(dirname "$ENABLED_FILE")" 2>/dev/null || true
+        echo "true" > "$ENABLED_FILE"
         COLOR="$2"
         MONITOR="$3"
         if [ -z "$COLOR" ]; then
@@ -146,6 +157,8 @@ case "$1" in
         fi
         ;;
     random)
+        mkdir -p "$(dirname "$ENABLED_FILE")" 2>/dev/null || true
+        echo "true" > "$ENABLED_FILE"
         start_engine
         LIST_JSON=$(send_ipc '{"cmd": "list"}')
         RAND_TARGET=$("$DIR/wp-ipc" random "$LIST_JSON" 2>/dev/null)
@@ -183,18 +196,29 @@ case "$1" in
         if is_running; then
             send_ipc '{"cmd": "status"}'
         else
-            echo '{"running": false}'
+            local en="true"
+            if [ -f "$ENABLED_FILE" ]; then
+                local val
+                val=$(tr -d '[:space:]' < "$ENABLED_FILE" 2>/dev/null)
+                if [ "$val" = "false" ] || [ "$val" = "0" ]; then
+                    en="false"
+                fi
+            fi
+            echo "{\"running\": false, \"enabled\": $en}"
         fi
         ;;
     reload)
         send_ipc '{"cmd": "reload"}'
         ;;
     init)
-        start_engine
-        CURR=$(cat "$STATE_FILE" 2>/dev/null)
-        if [ -n "$CURR" ]; then
-            "$0" set "$CURR" >/dev/null 2>&1
+        if [ -f "$ENABLED_FILE" ]; then
+            IS_ENABLED=$(tr -d '[:space:]' < "$ENABLED_FILE" 2>/dev/null)
+            if [ "$IS_ENABLED" = "false" ] || [ "$IS_ENABLED" = "0" ]; then
+                echo "Wallpaper Engine is disabled in settings. Skipping start."
+                exit 0
+            fi
         fi
+        start_engine
         ;;
     *)
         echo "Usage: wallpaperctl {start|stop|restart|set <target> [monitor]|add <path_or_url> [name]|remove <path_or_url>|color <hex>|set-effect <key> <val>|set-config <json>|get-config|get|list|random|monitors|status|reload|init}"

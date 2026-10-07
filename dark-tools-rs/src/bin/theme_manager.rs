@@ -245,6 +245,10 @@ fn get_active_theme_id() -> String {
 }
 
 fn apply_theme(theme: &Theme) -> Result<(), Box<dyn std::error::Error>> {
+    apply_theme_internal(theme, true, true)
+}
+
+fn apply_theme_internal(theme: &Theme, update_wallpaper: bool, notify: bool) -> Result<(), Box<dyn std::error::Error>> {
     let home = home_dir();
     let root = dark_niri_dir();
 
@@ -353,20 +357,26 @@ layout {{
     let _ = Command::new("niri").args(["msg", "action", "load-config-file"]).spawn();
 
     // 7. Update Wallpaper Engine
-    let wp_ctl = root.join("quickshell/wallpaper-engine/wallpaperctl");
-    if wp_ctl.exists() && !theme.wallpaper.is_empty() {
-        let _ = Command::new(&wp_ctl).args(["set", &theme.wallpaper]).spawn();
+    if update_wallpaper {
+        let wp_ctl = root.join("quickshell/wallpaper-engine/wallpaperctl");
+        let theme_dir = root.join("quickshell/wallpaper-engine/themes").join(&theme.wallpaper);
+        let wp_file = home.join("Pictures/Wallpapers").join(&theme.wallpaper);
+        if wp_ctl.exists() && !theme.wallpaper.is_empty() && (theme_dir.exists() || wp_file.exists()) {
+            let _ = Command::new(&wp_ctl).args(["set", &theme.wallpaper]).spawn();
+        }
     }
 
     // 8. Send desktop notification
-    let _ = Command::new("notify-send")
-        .args([
-            "Dark Niri",
-            &format!("Theme applied: {}", theme.name),
-            "-i",
-            "preferences-desktop-theme",
-        ])
-        .spawn();
+    if notify {
+        let _ = Command::new("notify-send")
+            .args([
+                "Dark Niri",
+                &format!("Theme applied: {}", theme.name),
+                "-i",
+                "preferences-desktop-theme",
+            ])
+            .spawn();
+    }
 
     Ok(())
 }
@@ -501,6 +511,21 @@ fn main() {
             } else {
                 eprintln!("Unknown theme: {}. Available: {:?}", target_id, themes.iter().map(|t| &t.id).collect::<Vec<_>>());
                 std::process::exit(1);
+            }
+        }
+        "restore" => {
+            if let Some(t) = themes.iter().find(|t| t.id == active_id) {
+                if let Err(e) = apply_theme_internal(t, false, false) {
+                    eprintln!("Error restoring theme: {}", e);
+                    std::process::exit(1);
+                }
+                println!("Restored theme: {}", t.name);
+            } else if let Some(t) = themes.first() {
+                if let Err(e) = apply_theme_internal(t, false, false) {
+                    eprintln!("Error restoring fallback theme: {}", e);
+                    std::process::exit(1);
+                }
+                println!("Restored fallback theme: {}", t.name);
             }
         }
         "next" => {

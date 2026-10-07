@@ -14,6 +14,7 @@ Cycles the system between three primary power governors:
 ### Backend Implementation
 - **Primary Daemon**: `powerprofilesctl` (communicates with `power-profiles-daemon` over D-Bus).
 - **Fallback**: Direct sysfs manipulation of `/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`.
+- **State Persistence**: Active profile is written to `~/.config/niri/power_profile`. On login/boot, `powerprofile.sh restore` quietly applies the saved profile so the system maintains its previous power state across reboots.
 
 ---
 

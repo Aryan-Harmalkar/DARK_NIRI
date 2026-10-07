@@ -6,12 +6,24 @@
 ACTION="${1:-get}"
 TARGET="$2"
 
+STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/niri"
+STATE_FILE="$STATE_DIR/power_profile"
+
 get_profile() {
     if command -v powerprofilesctl >/dev/null 2>&1; then
         local prof
         prof=$(powerprofilesctl get 2>/dev/null)
         if [ -n "$prof" ]; then
             echo "$prof"
+            return
+        fi
+    fi
+    # Check saved state file if powerprofilesctl didn't return
+    if [ -f "$STATE_FILE" ]; then
+        local saved
+        saved=$(tr -d '[:space:]' < "$STATE_FILE" 2>/dev/null)
+        if [ -n "$saved" ]; then
+            echo "$saved"
             return
         fi
     fi
@@ -31,21 +43,28 @@ get_profile() {
 
 set_profile() {
     local prof="$1"
+    local quiet="$2"
     if command -v powerprofilesctl >/dev/null 2>&1; then
         powerprofilesctl set "$prof" 2>/dev/null
     fi
 
-    case "$prof" in
-        power-saver)
-            notify-send -u low -i preferences-system-power "Power Profile" "Switched to Power Saving (Eco) mode"
-            ;;
-        balanced)
-            notify-send -u low -i preferences-system-power "Power Profile" "Switched to Balanced mode"
-            ;;
-        performance)
-            notify-send -u low -i preferences-system-power "Power Profile" "Switched to Performance (Turbo) mode"
-            ;;
-    esac
+    # Save state to persistent file
+    mkdir -p "$STATE_DIR" 2>/dev/null || true
+    echo "$prof" > "$STATE_FILE" 2>/dev/null || true
+
+    if [ "$quiet" != "quiet" ]; then
+        case "$prof" in
+            power-saver)
+                notify-send -u low -i preferences-system-power "Power Profile" "Switched to Power Saving (Eco) mode"
+                ;;
+            balanced)
+                notify-send -u low -i preferences-system-power "Power Profile" "Switched to Balanced mode"
+                ;;
+            performance)
+                notify-send -u low -i preferences-system-power "Power Profile" "Switched to Performance (Turbo) mode"
+                ;;
+        esac
+    fi
     echo "$prof"
 }
 
@@ -77,6 +96,17 @@ case "$ACTION" in
                 ;;
         esac
         set_profile "$NEXT"
+        ;;
+    restore)
+        if [ -f "$STATE_FILE" ]; then
+            SAVED=$(tr -d '[:space:]' < "$STATE_FILE" 2>/dev/null)
+            if [ -n "$SAVED" ]; then
+                set_profile "$SAVED" "quiet"
+                exit 0
+            fi
+        fi
+        CURRENT=$(get_profile)
+        set_profile "$CURRENT" "quiet"
         ;;
     *)
         get_profile

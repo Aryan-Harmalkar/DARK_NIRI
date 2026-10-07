@@ -172,6 +172,7 @@ ShellRoot {
                             }
 
                             Components.Workspaces {
+                                screenName: barWindow.modelData ? barWindow.modelData.name : ""
                                 anchors.verticalCenter: parent.verticalCenter
                             }
 

@@ -19,6 +19,12 @@ gsettings set org.cinnamon.desktop.wm.preferences button-layout 'appmenu:minimiz
 killall mako 2>/dev/null
 killall qs 2>/dev/null
 
+# Restore previous system theme (syncs configs silently without changing user wallpaper)
+$HOME/DARK_NIRI/quickshell/theme-manager restore &
+
+# Restore previous power profile mode (power-saver, balanced, performance)
+$HOME/DARK_NIRI/quickshell/powerprofile.sh restore &
+
 # Start Mako with our custom config
 mako -c $HOME/DARK_NIRI/mako/config &
 

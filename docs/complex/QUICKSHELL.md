@@ -31,9 +31,10 @@ This document provides a complete technical analysis of the **QuickShell** deskt
 ## 2. Component Inventory
 
 ### 2.1 `Workspaces.qml` (Workspace Switcher)
-- **Polling / Trigger**: Runs `niri msg -j workspaces` via `Process` + `StdioCollector`.
-- **Parsing**: Parses JSON array of workspaces, identifying `is_active: true`.
-- **Interaction**: Clicking a workspace pill executes `niri msg action focus-workspace <idx>`. Smooth capsule morphing animation on focus shift.
+- **Polling / Trigger**: Real-time event stream via `niri msg -j event-stream` (reacting to `WorkspacesChanged`, `WorkspaceActivated`, `WindowFocusChanged`), backed by one-shot `niri msg -j workspaces` and a 3-second sync timer.
+- **Multi-Monitor Filtering**: Automatically filters workspaces to the current screen (`screenName` matching `modelData.name` from `Quickshell.screens`), showing only the active monitor's workspaces per bar.
+- **Interaction & Hitbox**: Full 28px height click target with `Qt.PointingHandCursor`. Clicking any workspace pill or dot activates the workspace (`niri msg action focus-workspace <idx>`). Mouse wheel scrolls through workspaces (`focus-workspace-down` / `focus-workspace-up`) with accumulated delta throttling and zero cursor movement, allowing seamless continuous scrolling.
+- **Visuals & Animation**: Distinct active capsule morphing animation with `Theme.accent`, hover expansions, occupied workspace dimming (`Theme.fgMuted`), and press feedback animations.
 
 ### 2.2 `Clock.qml` (Date & Time Display & Interactive Calendar Popup)
 - **Top Bar Pill**: Dual-tone typography styling separating weekday, month, day, and 12-hour time with Tokyo Night accent separation dot.
@@ -98,11 +99,30 @@ This document provides a complete technical analysis of the **QuickShell** deskt
 - **Output**: Battery percentage and dynamic charging/discharging glyph.
 
 ### 2.12 `Settings.qml` (Control Center & Modals)
-- **Scope**: Bento box control center providing quick toggles, master volume/brightness sliders, 1-Click Theme Studio (7 presets), 1-Click Bar Style switcher (4 styles), Wi-Fi modal with layer-shell overlay password authentication, Bluetooth modal, and notification center.
+- **Scope**: Bento box control center providing quick toggles, master volume/brightness sliders, 1-Click Theme Studio (7 presets), 1-Click Bar Style switcher (4 styles), Wallpaper Engine control & live FX studio, Wi-Fi modal with layer-shell overlay password authentication, Bluetooth modal, and notification center.
+- **State Persistence**: Options selected in QuickShell settings (active theme, bar style, wallpaper engine configuration and toggle state, power profile) persist automatically across user logouts and system restarts via atomic disk state files and startup restoration hooks.
 
 ---
 
-## 3. Safe Shell Reload (`reload-shell.sh`)
+## 3. State Persistence & Boot Restoration
+
+To guarantee user state survives logouts, reboots, and shell reloads, QuickShell uses an instant disk-backed reactive state model:
+
+1. **System Theme & Colors (`components/Theme.qml`)**:
+   - Uses `Quickshell.Io.FileView` with `preload: true` and `watchChanges: true` to load `quickshell/theme.json` synchronously at QML construction.
+   - `theme-manager restore` runs during `niri/startup.sh` to synchronize Niri, Mako, Rofi, Fuzzel, and QuickShell configs from `~/.config/niri/current_theme.json` without overriding user wallpapers or triggering notification popups.
+2. **Bar Style Docking (`quickshell/bar_style.json`)**:
+   - `Theme.qml` binds directly to `quickshell/bar_style.json` via `FileView`, rendering the selected dock geometry (`floating`, `islands`, `normal`, or `compact`) instantaneously with zero layout flicker.
+3. **Power Profile (`quickshell/powerprofile.sh`)**:
+   - Writes active profile (`power-saver`, `balanced`, `performance`) to `~/.config/niri/power_profile`.
+   - `niri/startup.sh` executes `powerprofile.sh restore &` to quietly re-apply the power profile on boot.
+4. **HTML/Web Wallpaper Engine (`quickshell/wallpaper-engine/wallpaperctl`)**:
+   - Tracks engine enabled/disabled state in `~/.config/niri/wallpaper_engine_enabled`.
+   - When disabled in settings, `wallpaperctl init` avoids starting the background engine process. When enabled, it starts up and loads all saved visual effects, FPS, quality, and active wallpaper targets directly from `config.json`.
+
+---
+
+## 4. Safe Shell Reload (`reload-shell.sh`)
 
 To prevent media interruption during desktop bar restarts, `quickshell/reload-shell.sh` provides an atomic restart routine:
 1. Queries `playerctl` for active playback status prior to terminating `qs`.
